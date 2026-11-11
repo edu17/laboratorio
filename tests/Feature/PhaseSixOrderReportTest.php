@@ -330,13 +330,13 @@ it('builds the report from the immutable validation snapshot and escapes its con
         ->and($report['patient']['age_display'])->toBe('26 años')
         ->and($report['order']['referring_doctor'])->toBe('Dra. Ficticia <Referencia>')
         ->and($html)->toContain('Dra. Ficticia &lt;Referencia&gt;')
-        ->and($report['patient']['first_names'])->toContain('<script>alert(1)</script>')
+        ->and($report['patient']['first_names'])->toContain('<Script>Alert(1)</Script>')
         ->and($report['exams'][0]['sections'][0]['rows'][0]['result'])->toBe('Resultado ficticio')
         ->and($html)->toContain('class="exam-title"')
         ->and($html)->toContain('class="results paired-results"')
         ->and($html)->toContain('class="validated-state">Validado</span>')
-        ->and($html)->toContain('&lt;script&gt;')
-        ->and($html)->not->toContain('<script>alert(1)</script>')
+        ->and($html)->toContain('&lt;Script&gt;')
+        ->and($html)->not->toContain('<Script>Alert(1)</Script>')
         ->and($html)->not->toContain('Resultado posterior')
         ->and($report['exams'][0]['sections'][0]['rows'][0]['reference'])->toBe('');
 });

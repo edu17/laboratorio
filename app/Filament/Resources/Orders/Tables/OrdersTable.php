@@ -34,11 +34,7 @@ class OrdersTable
                     $query->where(fn (Builder $query): Builder => $query
                         ->where('number', 'like', $pattern)
                         ->orWhere('referring_doctor', 'like', $pattern)
-                        ->orWhereHas('patient', fn (Builder $query): Builder => $query
-                            ->where('first_names', 'like', $pattern)
-                            ->orWhere('last_names', 'like', $pattern)
-                            ->orWhere('identifier', 'like', $pattern)
-                            ->orWhere('phone', 'like', $pattern))
+                        ->orWhereHas('patient', fn (Builder $query): Builder => $query->matchingSearch($term))
                         ->orWhereHas('orderExams.exam', fn (Builder $query): Builder => $query
                             ->where('name', 'like', $pattern)
                             ->orWhere('code', 'like', $pattern)));

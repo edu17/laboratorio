@@ -145,7 +145,7 @@ it('validates every active exam in one order-level operation and snapshots the a
         ->and($validated->validation_version)->toBe(1)
         ->and($validated->orderExams->every(fn (OrderExam $exam): bool => $exam->status === OrderExam::STATUS_VALIDATED))->toBeTrue()
         ->and($validated->validationEvents()->sole()->results_snapshot['exams'])->toHaveCount(2)
-        ->and($validated->validationEvents()->sole()->results_snapshot['patient']['first_names'])->toBe('Paciente ficticio')
+        ->and($validated->validationEvents()->sole()->results_snapshot['patient']['first_names'])->toBe('Paciente Ficticio')
         ->and($validated->validationEvents()->sole()->results_snapshot['validated_by']['name'])->toBe($validator->name);
 
     expect(AuditLog::query()->where('action', 'order_validated')->sole()->metadata)

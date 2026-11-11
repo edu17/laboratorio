@@ -138,15 +138,15 @@ it('allows a technician to create and edit a patient and records metadata withou
     $this->actingAs($user);
 
     Livewire::test(CreatePatient::class)
-        ->fillForm(['first_names' => 'Paciente ficticio', 'identifier' => 'PRUEBA-001'])
+        ->fillForm(['first_names' => 'Paciente ficticio', 'last_names' => 'De Prueba', 'birth_date' => '1990-05-04', 'sex' => 'femenino', 'identifier' => 'prueba-001'])
         ->call('create')->assertHasNoFormErrors();
     $patient = Patient::where('identifier', 'PRUEBA-001')->sole();
-    $this->assertDatabaseHas('patients', ['id' => $patient->id, 'last_names' => null]);
+    $this->assertDatabaseHas('patients', ['id' => $patient->id, 'first_names' => 'Paciente Ficticio', 'last_names' => 'De Prueba']);
 
     Livewire::test(EditPatient::class, ['record' => $patient->id])
         ->fillForm(['first_names' => 'Paciente ficticio corregido'])
         ->call('save')->assertHasNoFormErrors();
-    $this->assertDatabaseHas('patients', ['id' => $patient->id, 'first_names' => 'Paciente ficticio corregido']);
+    $this->assertDatabaseHas('patients', ['id' => $patient->id, 'first_names' => 'Paciente Ficticio Corregido']);
     $event = AuditLog::where('entity_type', Patient::class)->where('action', 'updated')->sole();
     expect($event->user_id)->toBe($user->id);
     expect(json_encode($event->metadata))->not->toContain('Paciente ficticio');

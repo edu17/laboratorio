@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Orders\Schemas;
 
 use App\Actions\Orders\BuildOrderExamSnapshot;
+use App\Filament\Resources\Patients\PatientResource;
 use App\Filament\Resources\ReferringDoctors\ReferringDoctorResource;
 use App\Models\Exam;
 use App\Models\Order;
@@ -30,16 +31,21 @@ class OrderForm
                 Select::make('patient_id')
                     ->label('Paciente')
                     ->relationship('patient', 'first_names')
-                    ->getOptionLabelFromRecordUsing(fn (Patient $record): string => trim($record->first_names.' '.$record->last_names).($record->identifier ? ' — '.$record->identifier : ''))
-                    ->searchable(['first_names', 'last_names', 'identifier'])
-                    ->preload()
+                    ->getOptionLabelFromRecordUsing(fn (Patient $record): string => self::patientLabel($record))
+                    ->searchable()
+                    ->getSearchResultsUsing(fn (string $search): array => Patient::query()
+                        ->matchingSearch($search)
+                        ->orderBy('last_names')
+                        ->limit(25)
+                        ->get()
+                        ->mapWithKeys(fn (Patient $patient): array => [$patient->getKey() => self::patientLabel($patient)])
+                        ->all())
+                    ->searchPrompt('Escribe nombre, apellido, documento o teléfono')
+                    ->noSearchResultsMessage('No hay pacientes con esos datos: regístralo con el botón +')
+                    ->default(fn (): ?int => request()->integer('patient') ?: null)
                     ->required()
-                    ->createOptionForm([
-                        TextInput::make('first_names')->label('Nombres')->required()->maxLength(150),
-                        TextInput::make('last_names')->label('Apellidos')->maxLength(150),
-                        TextInput::make('identifier')->label('Identificador')->maxLength(100)->unique(),
-                    ])
-                    ->createOptionAction(fn ($action) => $action->label('Registrar paciente'))
+                    ->createOptionForm(PatientResource::formFields())
+                    ->createOptionAction(fn ($action) => $action->label('Registrar paciente')->modalWidth('3xl'))
                     ->createOptionUsing(function (array $data): int {
                         Gate::authorize('create', Patient::class);
 
@@ -99,6 +105,23 @@ class OrderForm
                 DatePicker::make('ordered_at')->label('Fecha de orden')->default(today())->disabled()->dehydrated(false),
                 TextInput::make('status')->label('Estado')->default('pendiente')->disabled()->dehydrated(false),
             ]);
+    }
+
+    /**
+     * "Nombre Apellido · 34 años · F · DPI": suficiente para distinguir a dos pacientes con el mismo nombre.
+     */
+    public static function patientLabel(Patient $patient): string
+    {
+        return collect([
+            $patient->full_name,
+            $patient->age_display,
+            match ($patient->sex) {
+                'femenino' => 'F',
+                'masculino' => 'M',
+                default => null,
+            },
+            $patient->identifier,
+        ])->filter()->implode(' · ');
     }
 
     /**

@@ -48,7 +48,20 @@ class AdminPanelProvider extends PanelProvider
                     ->navigationSort(2),
             ])
             ->colors([
-                'primary' => Color::hex('#1d3b64'),
+                // Azul del reporte (#1d3b64) en el tono de botones y enlaces (600).
+                'primary' => [
+                    50 => '#eef3f9',
+                    100 => '#d9e3f1',
+                    200 => '#b6c9e3',
+                    300 => '#89a7cf',
+                    400 => '#5b80b6',
+                    500 => '#3b5f97',
+                    600 => '#1d3b64',
+                    700 => '#172f50',
+                    800 => '#12253f',
+                    900 => '#0e1c31',
+                    950 => '#08111f',
+                ],
                 'info' => Color::Sky,
                 'success' => Color::Emerald,
                 'warning' => Color::Amber,

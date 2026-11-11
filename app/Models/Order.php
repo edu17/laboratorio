@@ -25,6 +25,24 @@ class Order extends Model
 
     public const STATUS_CANCELED = 'anulada';
 
+    /** @var array<string, string> */
+    public const STATUS_LABELS = [
+        self::STATUS_PENDING => 'Pendiente',
+        self::STATUS_IN_PROGRESS => 'En proceso',
+        self::STATUS_VALIDATED => 'Validada',
+        self::STATUS_PUBLISHED => 'Publicada',
+        self::STATUS_CANCELED => 'Anulada',
+    ];
+
+    /** @var array<string, string> Colores del panel por estado. */
+    public const STATUS_COLORS = [
+        self::STATUS_PENDING => 'gray',
+        self::STATUS_IN_PROGRESS => 'warning',
+        self::STATUS_VALIDATED => 'info',
+        self::STATUS_PUBLISHED => 'success',
+        self::STATUS_CANCELED => 'danger',
+    ];
+
     public function patient(): BelongsTo
     {
         return $this->belongsTo(Patient::class);
