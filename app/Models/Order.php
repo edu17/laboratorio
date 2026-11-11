@@ -83,6 +83,22 @@ class Order extends Model
         return $this->hasMany(OrderExam::class);
     }
 
+    /**
+     * Avance de captura de la orden, con la misma definición de "completo" que la validación: solo cuentan
+     * los exámenes que no están anulados ni retirados.
+     *
+     * @return array{captured: int, required: int, missing: int}
+     */
+    public function resultProgress(): array
+    {
+        $activeExams = $this->orderExams
+            ->reject(fn (OrderExam $orderExam): bool => in_array($orderExam->status, [OrderExam::STATUS_CANCELED, OrderExam::STATUS_WITHDRAWN], true));
+        $required = $activeExams->sum(fn (OrderExam $orderExam): int => $orderExam->requiredResultCount());
+        $missing = $activeExams->sum(fn (OrderExam $orderExam): int => count($orderExam->missingResults()));
+
+        return ['captured' => max(0, $required - $missing), 'required' => $required, 'missing' => $missing];
+    }
+
     protected function casts(): array
     {
         return [
