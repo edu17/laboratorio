@@ -1,8 +1,9 @@
 <?php
 
 /*
- * Examen de orina tomado de la zona impresa (columnas A–J) de la hoja ORINA de 2025.xlsx.
- * Los resultados se escriben como texto, igual que en el formato actual (por ejemplo "200 Ery/μl Hemolysis").
+ * Examen de orina y urocultivo tomados de la zona impresa (columnas A–J) de las hojas ORINA y CULTIVO1 de 2025.xlsx.
+ * Los resultados se escriben como texto, igual que en el formato actual (por ejemplo "200 Ery/μl Hemolysis"
+ * o la lista de antibióticos del antibiograma).
  */
 
 $paired = ['report_layout' => 'paired'];
@@ -41,6 +42,25 @@ return [
                     ['code' => 'levaduras', 'name' => 'Levaduras', 'type' => 'text'],
                     ['code' => 'cristales', 'name' => 'Cristales', 'type' => 'text'],
                     ['code' => 'otros', 'name' => 'Otros', 'type' => 'text'],
+                ]],
+            ],
+        ],
+        [
+            'code' => 'UROCULTIVO',
+            'name' => 'Urocultivo',
+            'sheet' => 'CULTIVO1',
+            'allows_partial_request' => false,
+            'sort_order' => 30,
+            'sections' => [
+                ['code' => 'urocultivo', 'name' => 'Urocultivo', 'parameters' => [
+                    [
+                        'code' => 'cultivo_orina',
+                        'name' => 'Cultivo de orina',
+                        'type' => 'observation',
+                        'reference' => 'Reporte microbiológico según hallazgo. Correlacionar con clínica del paciente.',
+                    ],
+                    ['code' => 'susceptible', 'name' => 'Susceptible', 'type' => 'observation'],
+                    ['code' => 'resistente', 'name' => 'Resistente', 'type' => 'observation'],
                 ]],
             ],
         ],
