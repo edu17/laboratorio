@@ -27,13 +27,14 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
+            ->viteTheme('resources/css/filament/admin/theme.css')
             ->login()
             ->brandName('Ismalej Prado')
             ->brandLogo(fn (): HtmlString => new HtmlString(
-                '<span style="display:flex;align-items:center;gap:.6rem">'
-                .'<img src="'.e(route('lab.brand-mark')).'" alt="" style="height:2.4rem;width:auto">'
-                .'<span style="line-height:1.1;font-weight:700;color:#1d3b64">Ismalej Prado'
-                .'<span style="display:block;font-size:.7rem;font-weight:500;color:#64748b">Laboratorio clínico-biológico</span></span>'
+                '<span class="flex items-center gap-2.5">'
+                .'<img src="'.e(route('lab.brand-mark')).'" alt="" class="h-9 w-auto rounded-full dark:bg-white dark:p-0.5">'
+                .'<span class="leading-tight font-bold tracking-tight text-primary-600 dark:text-white">Ismalej Prado'
+                .'<span class="block text-[0.68rem] font-medium tracking-normal text-gray-500 dark:text-gray-400">Laboratorio clínico-biológico</span></span>'
                 .'</span>'
             ))
             ->brandLogoHeight('2.6rem')

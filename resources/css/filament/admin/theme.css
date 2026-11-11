@@ -1,0 +1,254 @@
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+@source '../../../../app/Filament/**/*';
+@source '../../../../app/Providers/Filament/**/*';
+@source '../../../../resources/views/filament/**/*';
+
+/*
+ * Tema "clínico moderno" del Laboratorio Ismalej Prado.
+ * Superficies claras y tranquilas, azul institucional como único color de marca, jerarquía por peso y
+ * espacio antes que por color, y cifras tabulares para que los resultados se lean alineados.
+ */
+
+@theme {
+    --radius-card: 1rem;
+}
+
+/* ----- Base ----- */
+
+.fi-body {
+    @apply bg-slate-50 dark:bg-gray-950;
+}
+
+.fi-main {
+    @apply max-w-screen-2xl;
+}
+
+/* ----- Barra superior ----- */
+
+.fi-topbar {
+    @apply border-b border-gray-200/80 bg-white/85 shadow-none backdrop-blur-md dark:border-white/10 dark:bg-gray-900/80;
+}
+
+.fi-global-search-field .fi-input-wrp {
+    @apply bg-slate-50 dark:bg-white/5;
+}
+
+/* ----- Barra lateral ----- */
+
+.fi-sidebar {
+    @apply lg:border-e lg:border-gray-200/80 lg:bg-white dark:lg:border-white/10 dark:lg:bg-gray-900;
+}
+
+.fi-sidebar-nav {
+    @apply gap-y-5 px-4 py-6;
+}
+
+.fi-sidebar-group-label {
+    @apply text-[0.68rem] font-semibold tracking-[0.08em] text-gray-400 uppercase dark:text-gray-500;
+}
+
+.fi-sidebar-item-btn {
+    @apply relative rounded-lg px-3 py-2 transition-colors duration-150;
+
+    & > .fi-icon {
+        @apply text-gray-400 dark:text-gray-500;
+    }
+
+    & > .fi-sidebar-item-label {
+        @apply font-medium text-gray-600 dark:text-gray-300;
+    }
+
+    &:hover {
+        @apply bg-slate-100 dark:bg-white/5;
+
+        & > .fi-sidebar-item-label {
+            @apply text-gray-900 dark:text-white;
+        }
+    }
+}
+
+.fi-sidebar-item.fi-active > .fi-sidebar-item-btn {
+    @apply bg-primary-50 dark:bg-primary-500/15;
+
+    &::before {
+        @apply absolute inset-y-1.5 -start-4 w-1 rounded-e-full bg-primary-600 content-[''] dark:bg-primary-400;
+    }
+
+    & > .fi-sidebar-item-label {
+        @apply font-semibold text-primary-700 dark:text-primary-300;
+    }
+
+    & > .fi-icon {
+        @apply text-primary-600 dark:text-primary-400;
+    }
+}
+
+/* ----- Encabezado de página ----- */
+
+.fi-header {
+    @apply gap-y-3;
+}
+
+.fi-header-heading {
+    @apply text-2xl font-bold tracking-tight text-gray-900 sm:text-[1.7rem] dark:text-white;
+}
+
+.fi-breadcrumbs {
+    @apply text-xs;
+}
+
+/* ----- Tarjetas: secciones, tablas y widgets ----- */
+
+.fi-section:not(.fi-section-not-contained):not(.fi-aside),
+.fi-ta-ctn,
+.fi-wi-stats-overview-stat {
+    @apply rounded-(--radius-card) shadow-[0_1px_2px_rgb(15_23_42/0.04),0_1px_3px_rgb(15_23_42/0.06)] ring-gray-200/80 dark:ring-white/10;
+}
+
+.fi-section:not(.fi-section-not-contained):not(.fi-aside) > .fi-section-header {
+    @apply py-4;
+
+    & .fi-section-header-heading {
+        @apply text-[0.95rem] font-semibold text-gray-900 dark:text-white;
+    }
+
+    & > .fi-icon {
+        @apply rounded-lg bg-primary-50 p-1 text-primary-600 dark:bg-primary-500/15 dark:text-primary-300;
+    }
+}
+
+/* ----- Tablas ----- */
+
+.fi-ta-header-cell {
+    @apply bg-slate-50 py-3 text-[0.72rem] font-semibold tracking-wide text-gray-500 uppercase dark:bg-white/5 dark:text-gray-400;
+}
+
+.fi-ta-row {
+    @apply transition-colors duration-100;
+
+    &:hover {
+        @apply bg-primary-50/40 dark:bg-white/[0.03];
+    }
+}
+
+/* ----- Indicadores del escritorio ----- */
+
+.fi-wi-stats-overview-stat {
+    @apply overflow-hidden p-5 transition-shadow duration-150 hover:shadow-md;
+
+    & .fi-wi-stats-overview-stat-label {
+        @apply text-[0.8rem] font-semibold tracking-wide text-gray-500 uppercase dark:text-gray-400;
+    }
+
+    & .fi-wi-stats-overview-stat-value {
+        @apply text-4xl font-bold text-gray-900 dark:text-white;
+    }
+}
+
+/* ----- Controles ----- */
+
+.fi-btn,
+.fi-input-wrp,
+.fi-dropdown-panel {
+    @apply rounded-lg;
+}
+
+.fi-btn {
+    @apply font-semibold shadow-none transition-[background-color,box-shadow] duration-150;
+}
+
+.fi-badge {
+    @apply rounded-full px-2.5;
+}
+
+.fi-input-wrp:focus-within {
+    @apply ring-primary-600/70 dark:ring-primary-400/70;
+}
+
+.fi-fo-field-label-content,
+.fi-in-entry-label {
+    @apply font-medium text-gray-700 dark:text-gray-300;
+}
+
+.fi-modal-window {
+    @apply rounded-(--radius-card);
+}
+
+/* ----- Inicio de sesión ----- */
+
+.fi-simple-layout {
+    @apply relative overflow-hidden bg-primary-900;
+    background-image:
+        radial-gradient(60rem 40rem at 10% -10%, rgb(59 95 151 / 0.55), transparent 60%),
+        radial-gradient(50rem 35rem at 110% 110%, rgb(16 185 129 / 0.18), transparent 60%),
+        linear-gradient(160deg, var(--color-primary-800, #12253f), var(--color-primary-950, #08111f));
+
+    &::before {
+        @apply pointer-events-none absolute inset-0 content-[''];
+        background-image: radial-gradient(rgb(255 255 255 / 0.07) 1px, transparent 1px);
+        background-size: 22px 22px;
+    }
+}
+
+.fi-simple-main {
+    @apply relative rounded-2xl shadow-2xl ring-white/10 sm:rounded-2xl;
+}
+
+.fi-simple-header-heading {
+    @apply text-2xl font-bold tracking-tight;
+}
+
+/* ----- Resultados por examen (ficha de la orden) ----- */
+
+.lab-results {
+    @apply grid gap-5 text-sm;
+
+    & h4 {
+        @apply mb-2 text-[0.7rem] font-semibold tracking-[0.08em] text-gray-500 uppercase dark:text-gray-400;
+    }
+
+    & table {
+        @apply w-full border-collapse;
+    }
+
+    & table.standard {
+        @apply min-w-xl table-fixed;
+    }
+
+    & th {
+        @apply border-b border-gray-200 px-3 py-2 text-start text-[0.7rem] font-semibold tracking-wide whitespace-nowrap text-gray-500 uppercase dark:border-white/10 dark:text-gray-400;
+    }
+
+    & td {
+        @apply border-b border-gray-100 px-3 py-2.5 align-top text-gray-900 tabular-nums dark:border-white/5 dark:text-gray-100;
+    }
+
+    & tbody tr:last-child td {
+        @apply border-b-0;
+    }
+
+    & tbody tr:hover td {
+        @apply bg-slate-50 dark:bg-white/[0.03];
+    }
+
+    & .result {
+        @apply font-semibold;
+    }
+
+    & .muted {
+        @apply font-normal text-gray-400 italic dark:text-gray-500;
+    }
+
+    & .secondary {
+        @apply text-gray-500 dark:text-gray-400;
+    }
+
+    & .out-of-range {
+        @apply text-danger-600 dark:text-danger-400;
+    }
+
+    & .chip {
+        @apply ms-1.5 inline-block rounded-full bg-danger-50 px-2 py-0.5 text-[0.68rem] font-semibold whitespace-nowrap text-danger-700 dark:bg-danger-500/15 dark:text-danger-300;
+    }
+}
