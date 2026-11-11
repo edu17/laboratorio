@@ -11,6 +11,7 @@ use App\Models\User;
 use Database\Seeders\CuantitativosCatalogSeeder;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Facades\DB;
 
 uses(LazilyRefreshDatabase::class);
 
@@ -65,7 +66,22 @@ it('keeps a manual correction of a calculated value and records the revision', f
     $values = derivedSave($this->technician, $orderExam, ['bilirrubina_total' => '2.5', 'bilirrubina_directa' => '1.2', 'bilirrubina_indirecta' => '0.65']);
 
     expect($values['bilirrubina_indirecta'])->toBe(['value' => '0.65'])
-        ->and(ResultValueRevision::where('previous_value', json_encode(['value' => '0.7', 'calculated' => true]))->exists())->toBeTrue();
+        ->and(ResultValueRevision::all()->pluck('previous_value')->contains(fn (array $previous): bool => $previous == ['value' => '0.7', 'calculated' => true]))->toBeTrue();
+});
+
+it('does not record a revision when the stored result only differs in key order', function () {
+    $orderExam = derivedOrderExam($this->technician, 'HEPATICAS', ['bilirrubina_total', 'bilirrubina_directa', 'bilirrubina_indirecta']);
+    $values = ['bilirrubina_total' => '1.9', 'bilirrubina_directa' => '1.2', 'bilirrubina_indirecta' => null];
+
+    derivedSave($this->technician, $orderExam, $values);
+    DB::table('result_values')
+        ->where('order_exam_id', $orderExam->id)
+        ->where('parameter_code', 'bilirrubina_indirecta')
+        ->update(['value' => '{"calculated":true,"value":"0.7"}']);
+
+    derivedSave($this->technician, $orderExam, [...$values, 'bilirrubina_indirecta' => '0.7']);
+
+    expect(ResultValueRevision::count())->toBe(0);
 });
 
 it('calculates VLDL and LDL with Friedewald only up to 400 mg/dL of triglycerides', function (string $triglycerides, ?array $vldl, ?array $ldl) {

@@ -187,7 +187,7 @@ class SaveOrderExamResultDraft
                     continue;
                 }
 
-                if ($result->value !== $value) {
+                if (! $this->sameResult($result->value, $value)) {
                     ResultValueRevision::create([
                         'result_value_id' => $result->getKey(),
                         'previous_value' => $result->value,
@@ -284,5 +284,26 @@ class SaveOrderExamResultDraft
         }
 
         return $sections;
+    }
+
+    /**
+     * Compara dos resultados sin depender del orden de las claves: MySQL reordena las claves
+     * de las columnas JSON al guardarlas, y una diferencia de orden no es un cambio de resultado.
+     */
+    private function sameResult(mixed $stored, mixed $submitted): bool
+    {
+        return $this->withSortedKeys($stored) === $this->withSortedKeys($submitted);
+    }
+
+    private function withSortedKeys(mixed $value): mixed
+    {
+        if (! is_array($value)) {
+            return $value;
+        }
+
+        $value = array_map($this->withSortedKeys(...), $value);
+        ksort($value);
+
+        return $value;
     }
 }

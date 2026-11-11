@@ -214,8 +214,9 @@ it('allows only the validator to reopen, requires a reason, and preserves prior 
     expect($revalidated->validation_version)->toBe(2)
         ->and($revalidated->validationEvents()->where('action', OrderValidationEvent::ACTION_VALIDATED)->count())->toBe(2)
         ->and($revalidated->validationEvents()->where('action', OrderValidationEvent::ACTION_REOPENED)->count())->toBe(1)
-        ->and($revalidated->validationEvents()->where('version', 2)->where('action', OrderValidationEvent::ACTION_VALIDATED)->sole()->results_snapshot['exams'][0]['results'])
-        ->toContain(['parameter_code' => 'color', 'value' => ['value' => 'Resultado ficticio corregido']]);
+        ->and(collect($revalidated->validationEvents()->where('version', 2)->where('action', OrderValidationEvent::ACTION_VALIDATED)->sole()->results_snapshot['exams'][0]['results'])
+            ->firstWhere('parameter_code', 'color')['value'])
+        ->toBe(['value' => 'Resultado ficticio corregido']);
 });
 
 it('allows the validator to reopen a published order while blocking the other state changes', function () {
