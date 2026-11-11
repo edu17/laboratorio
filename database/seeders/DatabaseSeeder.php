@@ -18,5 +18,6 @@ class DatabaseSeeder extends Seeder
         $this->call(HecesCatalogSeeder::class);
         $this->call(OrinaCatalogSeeder::class);
         $this->call(CualitativosCatalogSeeder::class);
+        $this->call(CuantitativosCatalogSeeder::class);
     }
 }
