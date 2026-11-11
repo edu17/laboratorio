@@ -1,9 +1,11 @@
 <?php
 
 use App\Actions\Orders\CreateLabOrder;
+use App\Actions\Orders\ValidateLabOrder;
 use App\Actions\Results\SaveOrderExamResultDraft;
 use App\Models\AuditLog;
 use App\Models\Exam;
+use App\Models\Order;
 use App\Models\OrderExam;
 use App\Models\Patient;
 use App\Models\ResultValueRevision;
@@ -12,6 +14,7 @@ use Database\Seeders\CuantitativosCatalogSeeder;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 uses(LazilyRefreshDatabase::class);
 
@@ -92,22 +95,45 @@ it('calculates VLDL and LDL with Friedewald only up to 400 mg/dL of triglyceride
         'colesterol_vldl' => null, 'colesterol_ldl' => null,
     ]);
 
-    expect($values['colesterol_vldl'])->toBe($vldl ?? ['value' => null])
-        ->and($values['colesterol_ldl'])->toBe($ldl ?? ['value' => null]);
+    expect($values['colesterol_vldl'])->toBe($vldl)
+        ->and($values['colesterol_ldl'])->toBe($ldl);
 })->with([
     'triglycerides 150' => ['150', ['value' => '30', 'calculated' => true], ['value' => '130', 'calculated' => true]],
     'triglycerides 400' => ['400', ['value' => '80', 'calculated' => true], ['value' => '80', 'calculated' => true]],
-    'triglycerides 450 are written by hand' => ['450', null, null],
-    'triglycerides with comparator are written by hand' => ['> 1000', null, null],
+    'triglycerides 450 are not calculable' => ['450', ['value' => 'No calculable', 'calculated' => true], ['value' => 'No calculable', 'calculated' => true]],
+    'triglycerides with comparator are not calculable' => ['> 1000', ['value' => 'No calculable', 'calculated' => true], ['value' => 'No calculable', 'calculated' => true]],
 ]);
 
-it('clears a stale calculated LDL when triglycerides go above 400 mg/dL', function () {
+it('replaces a stale calculated LDL with "No calculable" when triglycerides go above 400 mg/dL', function () {
     $orderExam = derivedOrderExam($this->technician, 'QUIMICA', ['colesterol_total', 'colesterol_hdl', 'trigliceridos', 'colesterol_ldl']);
 
     derivedSave($this->technician, $orderExam, ['colesterol_total' => '200', 'colesterol_hdl' => '40', 'trigliceridos' => '150', 'colesterol_ldl' => null]);
     $values = derivedSave($this->technician, $orderExam, ['colesterol_total' => '200', 'colesterol_hdl' => '40', 'trigliceridos' => '450', 'colesterol_ldl' => '130']);
 
-    expect($values['colesterol_ldl'])->toBe(['value' => null]);
+    expect($values['colesterol_ldl'])->toBe(['value' => 'No calculable', 'calculated' => true]);
+});
+
+it('validates an order whose derived value is not calculable and lets a measured value replace it', function () {
+    $validator = User::factory()->create();
+    $validator->assignRole('Validador');
+    $orderExam = derivedOrderExam($this->technician, 'HEPATICAS', ['bilirrubina_total', 'bilirrubina_directa', 'bilirrubina_indirecta']);
+
+    $notCalculable = derivedSave($this->technician, $orderExam, ['bilirrubina_total' => '1.0', 'bilirrubina_directa' => '1.4', 'bilirrubina_indirecta' => null]);
+    $resubmitted = derivedSave($this->technician, $orderExam, ['bilirrubina_total' => '1.0', 'bilirrubina_directa' => '1.4', 'bilirrubina_indirecta' => 'No calculable']);
+
+    expect($notCalculable['bilirrubina_indirecta'])->toBe(['value' => 'No calculable', 'calculated' => true])
+        ->and($resubmitted['bilirrubina_indirecta'])->toBe(['value' => 'No calculable', 'calculated' => true]);
+
+    $order = app(ValidateLabOrder::class)->handle($orderExam->order->fresh(), $validator);
+
+    expect($order->status)->toBe(Order::STATUS_VALIDATED);
+});
+
+it('only accepts "No calculable" in derived parameters', function () {
+    $orderExam = derivedOrderExam($this->technician, 'HEPATICAS', ['bilirrubina_total', 'bilirrubina_directa', 'bilirrubina_indirecta']);
+
+    expect(fn () => derivedSave($this->technician, $orderExam, ['bilirrubina_total' => 'No calculable', 'bilirrubina_directa' => '1.2', 'bilirrubina_indirecta' => null]))
+        ->toThrow(ValidationException::class);
 });
 
 it('calculates the free to total PSA ratio as a percentage', function () {

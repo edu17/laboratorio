@@ -109,8 +109,11 @@ class SaveOrderExamResultDraft
                 ]);
             }
 
+            $acceptsNotCalculable = CalculateDerivedResults::acceptsNotCalculable($definition['code']);
             $rules = match ($definition['type']) {
-                'number' => ['nullable', 'string', 'max:30', 'regex:'.ResolveParameterReference::NUMBER_PATTERN],
+                'number' => ['nullable', 'string', 'max:30', 'regex:'.($acceptsNotCalculable
+                    ? CalculateDerivedResults::NUMBER_OR_NOT_CALCULABLE_PATTERN
+                    : ResolveParameterReference::NUMBER_PATTERN)],
                 'select', 'positive_negative' => $definition['options'] !== []
                     ? ['nullable', 'string', Rule::in($definition['options'])]
                     : ['nullable', 'string', 'max:2000'],
@@ -126,7 +129,7 @@ class SaveOrderExamResultDraft
             $value = filled($value) ? trim((string) $value) : null;
 
             $normalizedValues[$definition['code']] = [
-                'value' => $value !== null && $definition['type'] === 'number'
+                'value' => $value !== null && $definition['type'] === 'number' && $value !== CalculateDerivedResults::NOT_CALCULABLE
                     ? ResolveParameterReference::normalizeNumber($value)
                     : $value,
             ];

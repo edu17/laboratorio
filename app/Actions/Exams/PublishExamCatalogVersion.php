@@ -7,6 +7,7 @@ use App\Models\ExamCatalogVersion;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 
 class PublishExamCatalogVersion
 {
@@ -17,8 +18,19 @@ class PublishExamCatalogVersion
         return DB::transaction(function () use ($exam, $user): ExamCatalogVersion {
             $exam = Exam::query()
                 ->lockForUpdate()
-                ->with(['sections' => fn ($query) => $query->with('parameters')])
+                ->with(['sections' => fn ($query) => $query
+                    ->where('is_active', true)
+                    ->reorder('sort_order')
+                    ->with(['parameters' => fn ($query) => $query->where('is_active', true)->reorder('sort_order')])])
                 ->findOrFail($exam->getKey());
+
+            foreach ($exam->sections as $section) {
+                if ($section->structure === 'parasitological_matrix' && count($section->settings['columns'] ?? []) < 2) {
+                    throw ValidationException::withMessages([
+                        'settings.columns' => "La matriz «{$section->name}» debe definir al menos dos columnas antes de publicar.",
+                    ]);
+                }
+            }
 
             $versionNumber = ((int) $exam->catalogVersions()->max('version_number')) + 1;
 

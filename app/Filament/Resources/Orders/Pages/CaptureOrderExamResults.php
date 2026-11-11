@@ -187,7 +187,9 @@ class CaptureOrderExamResults extends Page
                     $field = match ($type) {
                         'number' => TextInput::make("values.{$code}.value")
                             ->maxLength(30)
-                            ->regex(ResolveParameterReference::NUMBER_PATTERN)
+                            ->regex(CalculateDerivedResults::acceptsNotCalculable($code)
+                                ? CalculateDerivedResults::NUMBER_OR_NOT_CALCULABLE_PATTERN
+                                : ResolveParameterReference::NUMBER_PATTERN)
                             ->placeholder('Ej. 1.02 o < 2.5'),
                         'select', 'positive_negative' => $this->getChoiceField($code, $parameter),
                         'observation' => Textarea::make("values.{$code}.value")->rows(3),
@@ -198,7 +200,7 @@ class CaptureOrderExamResults extends Page
                         $parameter['unit'] ?? null,
                         app(ResolveParameterReference::class)->handle($parameter, $patientSex, null)['text'],
                         isset(CalculateDerivedResults::FORMULAS[$code])
-                            ? 'Se calcula al guardar si lo dejas vacío: '.CalculateDerivedResults::FORMULAS[$code]['description'].'. Puedes corregirlo escribiendo otro valor.'
+                            ? 'Se calcula al guardar si lo dejas vacío: '.CalculateDerivedResults::FORMULAS[$code]['description'].'. Si no aplica queda "No calculable". Puedes corregirlo escribiendo otro valor.'
                             : null,
                     ])->filter(fn ($text): bool => filled($text))->implode(' · ');
 

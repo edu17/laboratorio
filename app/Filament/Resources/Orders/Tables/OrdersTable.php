@@ -22,14 +22,15 @@ class OrdersTable
     public static function configure(Table $table): Table
     {
         return $table
-            ->searchPlaceholder('Buscar orden, paciente, examen o resultado...')
+            ->searchPlaceholder(fn (): string => (auth()->user()?->can('View:Result') ?? false) ? 'Buscar orden, paciente, examen o resultado...' : 'Buscar orden, paciente o examen...')
             ->searchUsing(function (Builder $query, string $search): void {
                 $terms = preg_split('/\s+/', trim($search), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+                $canSearchResults = auth()->user()?->can('View:Result') ?? false;
 
                 foreach ($terms as $term) {
                     $pattern = '%'.$term.'%';
 
-                    $query->where(function (Builder $query) use ($pattern): void {
+                    $query->where(function (Builder $query) use ($pattern, $canSearchResults): void {
                         $query->where('number', 'like', $pattern)
                             ->orWhere('status', 'like', $pattern)
                             ->orWhereHas('patient', function (Builder $query) use ($pattern): void {
@@ -38,16 +39,18 @@ class OrdersTable
                                     ->orWhere('identifier', 'like', $pattern)
                                     ->orWhere('phone', 'like', $pattern);
                             })
-                            ->orWhereHas('orderExams', function (Builder $query) use ($pattern): void {
+                            ->orWhereHas('orderExams', function (Builder $query) use ($pattern, $canSearchResults): void {
                                 $query->where('catalog_snapshot->exam->name', 'like', $pattern)
                                     ->orWhereHas('exam', fn (Builder $query): Builder => $query->where('name', 'like', $pattern))
-                                    ->orWhereHas('resultValues', function (Builder $query) use ($pattern): void {
-                                        $query->where('parameter_code', 'like', $pattern)
-                                            ->orWhereRaw('CAST(result_values.value AS CHAR) LIKE ?', [$pattern]);
-                                    });
+                                    ->when($canSearchResults, fn (Builder $query): Builder => $query
+                                        ->orWhereHas('resultValues', function (Builder $query) use ($pattern): void {
+                                            $query->where('parameter_code', 'like', $pattern)
+                                                ->orWhereRaw('CAST(result_values.value AS CHAR) LIKE ?', [$pattern]);
+                                        }));
                             })
-                            ->orWhereHas('validationEvents', fn (Builder $query): Builder => $query
-                                ->whereRaw('CAST(order_validation_events.results_snapshot AS CHAR) LIKE ?', [$pattern]));
+                            ->when($canSearchResults, fn (Builder $query): Builder => $query
+                                ->orWhereHas('validationEvents', fn (Builder $query): Builder => $query
+                                    ->whereRaw('CAST(order_validation_events.results_snapshot AS CHAR) LIKE ?', [$pattern])));
                     });
                 }
             })

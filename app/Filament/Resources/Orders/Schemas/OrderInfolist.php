@@ -10,6 +10,14 @@ use Filament\Schemas\Schema;
 
 class OrderInfolist
 {
+    /**
+     * Ver la orden no implica ver sus resultados clínicos: eso exige View:Result, como en OrderExamPolicy.
+     */
+    public static function canViewResults(): bool
+    {
+        return auth()->user()?->can('View:Result') ?? false;
+    }
+
     public static function configure(Schema $schema): Schema
     {
         return $schema
@@ -29,10 +37,15 @@ class OrderInfolist
                 TextEntry::make('referring_doctor')->label('Médico remitente')->placeholder('Sin referencia'),
                 TextEntry::make('notes')->label('Observaciones administrativas')->placeholder('Sin observaciones'),
                 TextEntry::make('orderExams')
-                    ->label('Exámenes y resultados capturados')
+                    ->label(fn (): string => self::canViewResults() ? 'Exámenes y resultados capturados' : 'Exámenes solicitados')
                     ->state(fn (Order $record): array => $record->orderExams
                         ->map(function ($orderExam): string {
                             $examName = $orderExam->catalog_snapshot['exam']['name'] ?? $orderExam->exam->name;
+
+                            if (! self::canViewResults()) {
+                                return $examName.' — '.$orderExam->status;
+                            }
+
                             $resultValues = $orderExam->resultValues->keyBy('parameter_code');
                             $results = [];
 

@@ -229,6 +229,54 @@ it('preserves previously published catalog snapshots when the editable catalog c
         ->toThrow(LogicException::class, 'Published exam catalog versions are immutable.');
 });
 
+it('publishes only active sections and parameters, so new orders do not require deactivated ones', function () {
+    $this->seed(RolesAndPermissionsSeeder::class);
+    $this->seed(HecesCatalogSeeder::class);
+    $administrator = phaseTwoUser('Administrador');
+    $exam = Exam::where('code', 'HECES')->sole();
+    $macroscopic = $exam->sections()->where('code', 'macroscopico')->sole();
+    $macroscopic->parameters()->where('code', 'moco')->sole()->update(['is_active' => false]);
+    $exam->sections()->where('code', 'microscopico')->sole()->update(['is_active' => false]);
+
+    $version = app(PublishExamCatalogVersion::class)->handle($exam->fresh(), $administrator);
+    $publishedCodes = collect($version->snapshot['sections'])->flatMap(fn (array $section): array => array_column($section['parameters'], 'code'));
+
+    expect(collect($version->snapshot['sections'])->pluck('code')->all())->not->toContain('microscopico')
+        ->and($publishedCodes)->not->toContain('moco')
+        ->and($publishedCodes)->toContain('color');
+});
+
+it('rejects publishing a parasitological matrix with fewer than two columns', function () {
+    $this->seed(RolesAndPermissionsSeeder::class);
+    $administrator = phaseTwoUser('Administrador');
+    $exam = Exam::factory()->create();
+    ExamSection::factory()->create(['exam_id' => $exam->id, 'name' => 'Matriz incompleta', 'structure' => 'parasitological_matrix', 'settings' => ['columns' => ['Organismo']]]);
+
+    expect(fn () => app(PublishExamCatalogVersion::class)->handle($exam, $administrator))
+        ->toThrow(ValidationException::class, 'Matriz incompleta');
+    $this->assertDatabaseCount('exam_catalog_versions', 0);
+});
+
+it('rejects a parameter code already used in another section of the same exam', function () {
+    $this->seed(RolesAndPermissionsSeeder::class);
+    $this->actingAs(phaseTwoUser('Administrador'));
+    $exam = Exam::factory()->create();
+    $firstSection = ExamSection::factory()->create(['exam_id' => $exam->id]);
+    $secondSection = ExamSection::factory()->create(['exam_id' => $exam->id]);
+    $otherExamSection = ExamSection::factory()->create();
+    ExamParameter::factory()->create(['exam_section_id' => $firstSection->id, 'code' => 'color']);
+
+    Livewire::test(CreateExamParameter::class)
+        ->fillForm(['exam_section_id' => $secondSection->id, 'code' => 'color', 'name' => 'Color repetido', 'result_type' => 'text', 'is_active' => true, 'sort_order' => 10])
+        ->call('create')
+        ->assertHasFormErrors(['code' => 'unique']);
+
+    Livewire::test(CreateExamParameter::class)
+        ->fillForm(['exam_section_id' => $otherExamSection->id, 'code' => 'color', 'name' => 'Color de otro examen', 'result_type' => 'text', 'is_active' => true, 'sort_order' => 10])
+        ->call('create')
+        ->assertHasNoFormErrors();
+});
+
 it('rejects catalog publication without update permission', function () {
     $this->seed(RolesAndPermissionsSeeder::class);
     $this->seed(HecesCatalogSeeder::class);

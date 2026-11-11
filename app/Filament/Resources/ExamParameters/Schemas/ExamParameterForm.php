@@ -47,7 +47,13 @@ class ExamParameterForm
                     ->helperText('Busca por examen o sección. El código del examen aparece antes del nombre de la sección.')
                     ->required(),
                 TextInput::make('code')->label('Identificador')->required()->alphaDash()->maxLength(100)
-                    ->unique(ignoreRecord: true, modifyRuleUsing: fn (Unique $rule, Get $get): Unique => $rule->where('exam_section_id', $get('exam_section_id'))),
+                    ->helperText('Debe ser único en todo el examen: los resultados se guardan por este identificador.')
+                    ->unique(ignoreRecord: true, modifyRuleUsing: fn (Unique $rule, Get $get): Unique => $rule->whereIn(
+                        'exam_section_id',
+                        ExamSection::query()
+                            ->where('exam_id', ExamSection::query()->whereKey($get('exam_section_id'))->value('exam_id'))
+                            ->select('id'),
+                    )),
                 TextInput::make('name')->label('Nombre del parámetro')->required()->maxLength(180),
                 Select::make('result_type')->label('Tipo de resultado')->options([
                     'text' => 'Texto',

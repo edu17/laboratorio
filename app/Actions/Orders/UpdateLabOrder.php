@@ -6,6 +6,7 @@ use App\Models\Exam;
 use App\Models\Order;
 use App\Models\OrderExam;
 use App\Models\Patient;
+use App\Models\ResultValue;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -52,7 +53,12 @@ class UpdateLabOrder
                 ]);
             }
 
-            if ($order->orderExams()->whereHas('resultValues')->exists() && $order->patient_id !== $patient->getKey()) {
+            $hasCapturedResults = ResultValue::query()
+                ->whereIn('order_exam_id', $order->orderExams()->select('id'))
+                ->get()
+                ->contains(fn (ResultValue $result): bool => $result->hasCapturedValue());
+
+            if ($hasCapturedResults && $order->patient_id !== $patient->getKey()) {
                 throw ValidationException::withMessages([
                     'patient_id' => 'No se puede cambiar el paciente después de capturar resultados.',
                 ]);
@@ -98,7 +104,7 @@ class UpdateLabOrder
 
                     if ($existingOrderExam->status === OrderExam::STATUS_WITHDRAWN) {
                         $existingOrderExam->update([
-                            'status' => $existingOrderExam->resultValues()->exists()
+                            'status' => $existingOrderExam->resultValues()->get()->contains(fn (ResultValue $result): bool => $result->hasCapturedValue())
                                 ? OrderExam::STATUS_IN_PROGRESS
                                 : OrderExam::STATUS_PENDING,
                         ]);

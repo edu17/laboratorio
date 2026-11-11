@@ -30,6 +30,17 @@ class ResultValue extends Model
         return $this->hasMany(ResultValueRevision::class);
     }
 
+    /**
+     * Un guardado sin datos crea filas vacías ({"value": null} o celdas vacías); solo cuenta lo que se escribió.
+     */
+    public function hasCapturedValue(): bool
+    {
+        $value = is_array($this->value) ? $this->value : [];
+
+        return filled($value['value'] ?? null)
+            || collect($value['cells'] ?? [])->contains(fn (mixed $cell): bool => filled($cell));
+    }
+
     protected function casts(): array
     {
         return ['value' => 'array'];

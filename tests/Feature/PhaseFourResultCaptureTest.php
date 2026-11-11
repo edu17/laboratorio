@@ -258,3 +258,19 @@ it('preserves the patient identity and in-progress state after result capture', 
     expect($orderExam->fresh()->status)->toBe(OrderExam::STATUS_IN_PROGRESS)
         ->and($order->fresh()->patient_id)->not->toBe($differentPatient->getKey());
 });
+
+it('still allows changing the patient after saving an empty draft', function () {
+    $this->seed(RolesAndPermissionsSeeder::class);
+    $this->seed(HecesCatalogSeeder::class);
+    $administrator = phaseFourUser('Administrador');
+    $orderExam = phaseFourOrderExam($administrator);
+    $correctPatient = Patient::factory()->create();
+
+    app(SaveOrderExamResultDraft::class)->handle($orderExam, ['values' => []], $administrator);
+
+    expect(ResultValue::where('order_exam_id', $orderExam->id)->count())->toBeGreaterThan(0);
+
+    app(UpdateLabOrder::class)->handle($orderExam->order->fresh(), $correctPatient, [$orderExam->exam_id], null, $administrator);
+
+    expect($orderExam->order->fresh()->patient_id)->toBe($correctPatient->id);
+});

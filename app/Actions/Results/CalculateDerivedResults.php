@@ -14,6 +14,14 @@ class CalculateDerivedResults
     public const FRIEDEWALD_MAX_TRIGLYCERIDES = 400;
 
     /**
+     * Se guarda cuando hay datos pero la fórmula no aplica (triglicéridos > 400, resultado negativo,
+     * dato con comparador): permite validar la orden y se imprime tal cual en el reporte.
+     */
+    public const NOT_CALCULABLE = 'No calculable';
+
+    public const NUMBER_OR_NOT_CALCULABLE_PATTERN = '/\A\s*(?:(?:<=|>=|<|>)?\s*-?\d+(?:\.\d+)?|No calculable)\s*\z/';
+
+    /**
      * @var array<string, array{inputs: list<string>, description: string}>
      */
     public const FORMULAS = [
@@ -55,20 +63,32 @@ class CalculateDerivedResults
                 continue;
             }
 
-            $inputs = [];
+            $rawInputs = array_map(fn (string $input): mixed => $values[$input]['value'] ?? null, $formula['inputs']);
 
-            foreach ($formula['inputs'] as $input) {
-                $inputs[$input] = $this->plainNumber($values[$input]['value'] ?? null);
+            if (collect($rawInputs)->contains(fn (mixed $input): bool => blank($input))) {
+                $values[$target] = ['value' => null];
+
+                continue;
             }
 
+            $inputs = array_combine($formula['inputs'], array_map($this->plainNumber(...), $rawInputs));
             $result = in_array(null, $inputs, true) ? null : $this->calculate($target, $inputs);
 
-            $values[$target] = $result === null
-                ? ['value' => null]
-                : ['value' => $this->format($result), 'calculated' => true];
+            $values[$target] = [
+                'value' => $result === null ? self::NOT_CALCULABLE : $this->format($result),
+                'calculated' => true,
+            ];
         }
 
         return $values;
+    }
+
+    /**
+     * Un parámetro calculado acepta, además de un número, el texto "No calculable".
+     */
+    public static function acceptsNotCalculable(string $parameterCode): bool
+    {
+        return isset(self::FORMULAS[$parameterCode]);
     }
 
     /**

@@ -22,6 +22,7 @@ use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
+use Spatie\Permission\Models\Role;
 
 uses(LazilyRefreshDatabase::class);
 
@@ -272,6 +273,36 @@ it('searches orders by number patient exam and captured result values', function
         ->searchTable('Trofozoito')
         ->assertCanSeeTableRecords([$historicalOrder])
         ->assertCanNotSeeTableRecords([$matchingOrder, $otherOrder]);
+});
+
+it('hides captured results from users who can view orders but not results', function (): void {
+    $this->seed(RolesAndPermissionsSeeder::class);
+    $this->seed(HecesCatalogSeeder::class);
+    $administrator = phaseThreeUser('Administrador');
+    $reception = User::factory()->create();
+    $reception->assignRole(Role::create(['name' => 'Recepción ficticia', 'guard_name' => 'web'])
+        ->givePermissionTo(['Access:Panel', 'ViewAny:Order', 'View:Order']));
+    $order = app(CreateLabOrder::class)->handle(Patient::factory()->create(), [Exam::where('code', 'HECES')->sole()->id], $administrator);
+    $order->orderExams->sole()->resultValues()->create([
+        'parameter_code' => 'color',
+        'value' => ['value' => 'Rosado confidencial'],
+        'edited_by' => $administrator->id,
+    ]);
+
+    $this->actingAs($reception);
+
+    $this->get("/admin/ordenes/{$order->id}")
+        ->assertOk()
+        ->assertSee('Exámenes solicitados')
+        ->assertDontSee('Rosado confidencial');
+
+    Livewire::test(ListOrders::class)
+        ->searchTable('Rosado confidencial')
+        ->assertCanNotSeeTableRecords([$order]);
+
+    $this->actingAs($administrator)
+        ->get("/admin/ordenes/{$order->id}")
+        ->assertSee('Rosado confidencial');
 });
 
 it('combines the exam status and date filters when listing order history', function (): void {
