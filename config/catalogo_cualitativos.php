@@ -15,6 +15,7 @@ return [
             'name' => 'Análisis VIH',
             'sheet' => 'VIH1',
             'allows_partial_request' => false,
+            'sort_order' => 100,
             'sections' => [
                 ['code' => 'resultado', 'name' => 'Resultado', 'parameters' => [
                     ['code' => 'vih', 'name' => 'VIH', 'type' => 'select', 'options' => ['No reactivo', 'Reactivo']],
@@ -26,6 +27,7 @@ return [
             'name' => 'VDRL (Sífilis)',
             'sheet' => 'VDRL',
             'allows_partial_request' => false,
+            'sort_order' => 110,
             'sections' => [
                 ['code' => 'resultado', 'name' => 'Resultado', 'parameters' => [
                     ['code' => 'vdrl', 'name' => 'VDRL (Sífilis)', 'type' => 'positive_negative', 'options' => $negativoPositivo],
@@ -37,6 +39,7 @@ return [
             'name' => 'HCG (Embarazo)',
             'sheet' => 'HCG',
             'allows_partial_request' => false,
+            'sort_order' => 120,
             'sections' => [
                 ['code' => 'resultado', 'name' => 'Resultado', 'parameters' => [
                     ['code' => 'hcg', 'name' => 'HCG (Embarazo)', 'type' => 'positive_negative', 'options' => $negativoPositivo],
@@ -48,6 +51,7 @@ return [
             'name' => 'Grupo sanguíneo y factor Rh',
             'sheet' => 'FACTORH',
             'allows_partial_request' => false,
+            'sort_order' => 130,
             'sections' => [
                 ['code' => 'resultado', 'name' => 'Exámenes especiales', 'parameters' => [
                     ['code' => 'grupo_sanguineo', 'name' => 'Grupo sanguíneo', 'type' => 'select', 'options' => ['A', 'B', 'AB', 'O']],
@@ -60,6 +64,7 @@ return [
             'name' => 'Rotavirus / Adenovirus',
             'sheet' => 'ROTA',
             'allows_partial_request' => true,
+            'sort_order' => 140,
             'sections' => [
                 ['code' => 'resultado', 'name' => 'Resultado', 'parameters' => [
                     ['code' => 'rotavirus', 'name' => 'Rotavirus', 'type' => 'positive_negative', 'options' => $negativoPositivo],
@@ -72,6 +77,7 @@ return [
             'name' => 'Dengue (Sangre)',
             'sheet' => 'DENGUE1',
             'allows_partial_request' => true,
+            'sort_order' => 150,
             'sections' => [
                 ['code' => 'resultado', 'name' => 'Resultado', 'parameters' => [
                     ['code' => 'dengue_igg', 'name' => 'IgG', 'type' => 'positive_negative', 'options' => $negativoPositivo],
@@ -85,6 +91,7 @@ return [
             'name' => 'Hepatitis',
             'sheet' => 'HEPATITIS AA',
             'allows_partial_request' => true,
+            'sort_order' => 160,
             'sections' => [
                 ['code' => 'hepatitis_c', 'name' => 'Hepatitis C', 'parameters' => [
                     ['code' => 'hepatitis_c_igm', 'name' => 'IgM', 'type' => 'positive_negative', 'options' => $negativoPositivo],
@@ -99,6 +106,7 @@ return [
             'name' => 'Helicobacter pylori (Sangre)',
             'sheet' => 'PYLORI S',
             'allows_partial_request' => false,
+            'sort_order' => 170,
             'sections' => [
                 ['code' => 'resultado', 'name' => 'Resultado', 'parameters' => [
                     ['code' => 'hpylori_sangre', 'name' => 'Helicobacter pylori en sangre', 'type' => 'positive_negative', 'options' => $negativoPositivo],
@@ -110,6 +118,7 @@ return [
             'name' => 'Sangre oculta en heces',
             'sheet' => 'PYLORI H',
             'allows_partial_request' => false,
+            'sort_order' => 180,
             'sections' => [
                 ['code' => 'resultado', 'name' => 'Resultado', 'parameters' => [
                     ['code' => 'sangre_oculta', 'name' => 'Sangre oculta en heces', 'type' => 'positive_negative', 'options' => $negativoPositivo],
@@ -121,6 +130,7 @@ return [
             'name' => 'TORCH - IgM',
             'sheet' => 'TORCH1',
             'allows_partial_request' => true,
+            'sort_order' => 190,
             'sections' => [
                 ['code' => 'resultado', 'name' => 'Exámenes especiales', 'parameters' => [
                     ['code' => 'toxoplasma_igm', 'name' => '(TOXO) Toxoplasma IgM', 'type' => 'positive_negative', 'options' => $negativoPositivo],
@@ -135,6 +145,7 @@ return [
             'name' => 'Toxicológico',
             'sheet' => 'TOXICOLOGICO1',
             'allows_partial_request' => true,
+            'sort_order' => 200,
             'sections' => [
                 ['code' => 'panel_drogas', 'name' => 'Panel de drogas', 'parameters' => [
                     ['code' => 'amfetaminas', 'name' => 'Amfetaminas (AMP)', 'type' => 'positive_negative', 'options' => $negativoPositivo],
@@ -155,6 +166,7 @@ return [
             'name' => 'Autoinmunidad',
             'sheet' => 'FOB',
             'allows_partial_request' => false,
+            'sort_order' => 210,
             'sections' => [
                 ['code' => 'resultado', 'name' => 'Autoinmunidad', 'parameters' => [
                     [
