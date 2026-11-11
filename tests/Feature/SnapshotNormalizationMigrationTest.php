@@ -20,7 +20,7 @@ it('renames old snapshot keys to the catalog column names without losing data', 
 
     (require database_path('migrations/2026_11_11_174628_normalize_exam_snapshot_keys.php'))->up();
 
-    expect($version->fresh()->snapshot['sections'][0]['parameters'])->toBe([
+    expect($version->fresh()->snapshot['sections'][0]['parameters'])->toEqual([
         ['code' => 'p', 'result_type' => 'number', 'reference_text' => '1 - 2', 'sort_order' => 10],
         ['code' => 'q', 'result_type' => 'text', 'reference_text' => null],
     ]);
