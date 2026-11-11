@@ -81,15 +81,25 @@ it('repeats the patient header on every page and registers the page numbering', 
         ->and(array_keys($headerPages))->toBe(range(1, $pageCount));
 });
 
-it('hides empty unit and reference columns and only explains the asterisk when a result is flagged', function () {
+it('shows qualitative results as cards and validated ranges as bars with their status', function () {
     $qualitative = view('reports.order', ['report' => layoutReport(['DENGUE' => ['dengue_igg' => 'Negativo', 'dengue_igm' => 'Positivo', 'dengue_ns1' => 'Negativo']])])->render();
     $flagged = view('reports.order', ['report' => layoutReport(['TIROIDEAS' => ['t3' => '1.05', 't4' => '13.4', 'tsh' => '1.98', 'tiroglobulina' => '40']])])->render();
 
     expect($qualitative)
-        ->not->toContain('Valores de referencia', '>Unidad<', 'Resultado fuera del rango de referencia')
-        ->toContain('Fin del reporte')
+        ->toContain('class="qualitative-cards"', '<td class="positive">', '1 positivo', 'Fin del reporte')
+        ->not->toContain('Bajo · Normal · Alto', 'fuera de rango')
         ->and($flagged)
-        ->toContain('Valores de referencia', '>Unidad<', '<strong class="out-of-range">*13.4</strong>', 'Resultado fuera del rango de referencia');
+        ->toContain('Bajo · Normal · Alto', '<span class="chip chip-alert">▲ Alto</span>', '<span class="chip chip-normal">Normal</span>', '1 fuera de rango')
+        ->and(substr_count($flagged, 'class="range-marker"'))->toBe(3);
+});
+
+it('places the range marker at the result position inside the normal zone', function () {
+    $rows = collect(layoutReport(['TIROIDEAS' => ['t3' => '1.4', 't4' => '13.4', 'tsh' => '< 0.1', 'tiroglobulina' => '40']])['exams'][0]['sections'][0]['rows'])->keyBy('name');
+
+    expect($rows['T3']['indicator'])->toBe(['zone_start' => 25.0, 'zone_width' => 50.0, 'position' => 50.0])
+        ->and($rows['T4']['indicator']['position'])->toBe(86.7)
+        ->and($rows['TSH']['indicator'])->toBeNull()
+        ->and($rows['Tiroglobulina']['indicator'])->toBeNull();
 });
 
 it('formats eight digit phone numbers in the footer', function () {

@@ -76,7 +76,7 @@ class RenderValidatedOrderPdf
             $text,
             $font,
             $size,
-            [0.48, 0.53, 0.57],
+            [0.2, 0.25, 0.3],
         );
     }
 

@@ -68,7 +68,7 @@ class BuildValidatedOrderReportData
         }
 
         $report = [
-            'template_version' => '2',
+            'template_version' => '3',
             'generated_at' => now()->format('d/m/Y H:i'),
             'institution' => $this->formatInstitution($snapshot['lab_profile'] ?? []),
             'order' => [
@@ -241,6 +241,7 @@ class BuildValidatedOrderReportData
                     'unit' => $this->displayValue($parameter['unit'] ?? null),
                     'reference' => $referenceApproved ? $reference['text'] : '',
                     'flag' => $referenceApproved ? $reference['flag'] : null,
+                    'indicator' => $referenceApproved ? $reference['indicator'] : null,
                 ];
             }
 

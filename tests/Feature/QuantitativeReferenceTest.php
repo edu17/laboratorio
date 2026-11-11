@@ -86,7 +86,7 @@ it('prints the reference for the patient sex and flags results outside that rang
     'comparator result is not flagged' => ['masculino', '<0.3', '< 0.3', 'HOMBRES 0.60 - 1.10 mg/dL', null],
 ]);
 
-it('marks an out of range result with an asterisk in the printed report', function () {
+it('marks an out of range result as high in the printed report', function () {
     $administrator = quantitativeUser('Administrador');
     $validator = quantitativeUser('Validador');
     $order = app(CreateLabOrder::class)->handle(Patient::factory()->create(['sex' => 'masculino']), [quantitativeCreatinineExam()->id], $administrator);
@@ -97,8 +97,10 @@ it('marks an out of range result with an asterisk in the printed report', functi
     $report = app(BuildValidatedOrderReportData::class)->handle(Order::findOrFail($order->id), $validator);
 
     $this->view('reports.order', ['report' => $report, 'footerReserveMm' => 20])
-        ->assertSeeHtml('<strong class="out-of-range">*1.5</strong>')
-        ->assertSee('HOMBRES 0.60 - 1.10 mg/dL');
+        ->assertSeeHtml('<strong class="out-of-range result-value">1.5</strong>')
+        ->assertSeeHtml('<span class="chip chip-alert">▲ Alto</span>')
+        ->assertSee('HOMBRES 0.60 - 1.10 mg/dL')
+        ->assertSee('1 fuera de rango');
 });
 
 it('does not print or flag a reference that is still pending validation', function () {

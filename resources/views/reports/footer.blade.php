@@ -4,21 +4,20 @@
             <tbody>
                 <tr>
                     <td>
-                        <strong>Dirección:</strong> {{ $report['institution']['address'] ?: 'Sin registrar' }}<br>
-                        <strong>Horario:</strong> {{ $report['institution']['opening_hours'] ?: 'Sin registrar' }}
-                        @if (filled($report['institution']['phone']) || filled($report['institution']['email']))
-                            · Tel. {{ collect([$formatPhone($report['institution']['phone']), $report['institution']['email']])->filter()->implode(' · ') }}
+                        {{ $report['institution']['address'] ?: 'Dirección sin registrar' }}
+                        · {{ $report['institution']['opening_hours'] ?: 'Horario sin registrar' }}<br>
+                        @if (filled($report['institution']['phone']))
+                            Tel. {{ $formatPhone($report['institution']['phone']) }} ·
+                        @endif
+                        Emergencias {{ $formatPhone($report['institution']['emergency_phone']) ?: 'sin registrar' }}
+                        @if (filled($report['institution']['email']))
+                            · {{ $report['institution']['email'] }}
                         @endif
                     </td>
-                    <td class="emergency"><strong>Emergencias</strong><br>{{ $formatPhone($report['institution']['emergency_phone']) ?: 'Sin registrar' }}</td>
-                </tr>
-            </tbody>
-        </table>
-        <table class="footer-meta">
-            <tbody>
-                <tr>
-                    <td>Orden {{ $report['order']['number'] }} · Versión {{ $report['validation']['version'] }} · Formato {{ $report['template_version'] }} · Generado {{ $report['generated_at'] }}</td>
-                    <td class="page-number"></td>
+                    <td class="footer-meta">
+                        {{ $report['order']['number'] }} · Formato {{ $report['template_version'] }} · Generado {{ $report['generated_at'] }}<br>
+                        &nbsp;
+                    </td>
                 </tr>
             </tbody>
         </table>
