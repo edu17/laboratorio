@@ -1,7 +1,8 @@
 <?php
 
-use App\Actions\Exams\BuildExamResultFormDefinition;
+use App\Actions\Exams\BuildExamSnapshot;
 use App\Actions\Exams\PublishExamCatalogVersion;
+use App\Actions\Orders\BuildOrderExamSnapshot;
 use App\Filament\Resources\ExamParameters\Pages\CreateExamParameter;
 use App\Filament\Resources\ExamParameters\Pages\EditExamParameter;
 use App\Filament\Resources\ExamSections\Pages\CreateExamSection;
@@ -180,20 +181,19 @@ it('builds a result form definition from active HECES sections and parameters', 
     $this->seed(HecesCatalogSeeder::class);
     $exam = Exam::where('code', 'HECES')->sole();
 
-    $definition = app(BuildExamResultFormDefinition::class)->handle($exam);
+    $definition = app(BuildExamSnapshot::class)->handle($exam);
 
-    expect($definition['exam'])->toBe(['code' => 'HECES', 'name' => 'Examen de heces']);
+    expect($definition['exam'])->toMatchArray(['code' => 'HECES', 'name' => 'Examen de heces']);
     expect(array_column($definition['sections'], 'code'))->toBe(['macroscopico', 'microscopico', 'parasitologico']);
     expect(array_map(fn (array $section): int => count($section['parameters']), $definition['sections']))->toBe([6, 9, 11]);
     expect($definition['sections'][0]['parameters'][0])
         ->toMatchArray([
             'code' => 'color',
             'name' => 'Color',
-            'type' => 'text',
+            'result_type' => 'text',
             'unit' => null,
-            'reference' => null,
+            'reference_text' => null,
             'clinical_validation_status' => 'pending',
-            'order' => 10,
         ]);
     expect($definition['sections'][2]['settings']['columns'])
         ->toBe(['Organismo', 'Quiste', 'Trofozoíto', 'Huevo', 'Larva']);
@@ -205,7 +205,7 @@ it('does not build a result form definition for an inactive exam', function () {
     $exam = Exam::where('code', 'HECES')->sole();
     $exam->update(['is_active' => false]);
 
-    expect(fn () => app(BuildExamResultFormDefinition::class)->handle($exam->fresh()))
+    expect(fn () => app(BuildOrderExamSnapshot::class)->handle($exam->fresh()))
         ->toThrow(ValidationException::class);
 });
 

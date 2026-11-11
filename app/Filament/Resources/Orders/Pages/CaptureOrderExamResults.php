@@ -183,7 +183,7 @@ class CaptureOrderExamResults extends Page
                         continue;
                     }
 
-                    $type = $parameter['type'] ?? $parameter['result_type'] ?? 'text';
+                    $type = $parameter['result_type'] ?? 'text';
                     $field = match ($type) {
                         'number' => TextInput::make("values.{$code}.value")
                             ->maxLength(30)

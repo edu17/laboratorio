@@ -28,7 +28,7 @@ class ResolveParameterReference
         $config = is_array($parameter['reference_config'] ?? null) ? $parameter['reference_config'] : [];
         $sex = in_array($sex, ['femenino', 'masculino'], true) ? $sex : null;
         $text = $this->configValue($config, 'texto', $sex)
-            ?? $parameter['reference'] ?? $parameter['reference_text'] ?? '';
+            ?? $parameter['reference_text'] ?? '';
         $number = $this->plainNumber($parameter, $value);
         $min = $this->configValue($config, 'min', $sex);
         $max = $this->configValue($config, 'max', $sex);
@@ -80,7 +80,7 @@ class ResolveParameterReference
      */
     private function plainNumber(array $parameter, mixed $value): ?float
     {
-        $type = $parameter['type'] ?? $parameter['result_type'] ?? null;
+        $type = $parameter['result_type'] ?? null;
 
         if ($type !== 'number' || ! is_scalar($value) || preg_match(self::NUMBER_PATTERN, (string) $value, $matches) !== 1 || $matches[1] !== '') {
             return null;

@@ -254,7 +254,7 @@ class SaveOrderExamResultDraft
 
                 $definitions[] = [
                     'code' => $code,
-                    'type' => $parameter['type'] ?? $parameter['result_type'] ?? 'text',
+                    'type' => $parameter['result_type'] ?? 'text',
                     'options' => is_array($parameter['options'] ?? null)
                         ? array_values(array_filter($parameter['options'], 'is_string'))
                         : [],

@@ -106,9 +106,9 @@ it('validates select values against catalog options and accepts numeric and obse
         'name' => 'Sección ficticia',
         'structure' => 'table',
         'parameters' => [
-            ['code' => 'choice', 'name' => 'Opción', 'type' => 'select', 'options' => ['Uno', 'Dos']],
-            ['code' => 'quantity', 'name' => 'Cantidad', 'type' => 'number', 'options' => []],
-            ['code' => 'note', 'name' => 'Observación', 'type' => 'observation', 'options' => []],
+            ['code' => 'choice', 'name' => 'Opción', 'result_type' => 'select', 'options' => ['Uno', 'Dos']],
+            ['code' => 'quantity', 'name' => 'Cantidad', 'result_type' => 'number', 'options' => []],
+            ['code' => 'note', 'name' => 'Observación', 'result_type' => 'observation', 'options' => []],
         ],
     ]];
     $orderExam->update(['catalog_snapshot' => $snapshot]);

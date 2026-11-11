@@ -63,7 +63,7 @@ function phaseFiveValues(OrderExam $orderExam, bool $matrixHasFindings = true): 
                 continue;
             }
 
-            $type = $parameter['type'] ?? $parameter['result_type'] ?? 'text';
+            $type = $parameter['result_type'] ?? 'text';
             $value = match ($type) {
                 'number' => '12.5',
                 'select', 'positive_negative' => $parameter['options'][0] ?? 'Opción ficticia',
