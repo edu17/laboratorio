@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'exam_name' => 'EXÁMEN DE HECES',
+    'exam_name' => 'Examen de heces',
     'source' => 'Hoja HECES del archivo 2025.xlsx',
     'clinical_validation_status' => 'pending',
     'sections' => [

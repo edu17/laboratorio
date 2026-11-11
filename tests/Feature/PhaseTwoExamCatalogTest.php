@@ -82,7 +82,7 @@ it('seeds the HECES catalog from its source structure without inventing clinical
 
     $exam = Exam::where('code', 'HECES')->sole();
 
-    expect($exam->name)->toBe('EXÁMEN DE HECES');
+    expect($exam->name)->toBe('Examen de heces');
     expect($exam->clinical_validation_status)->toBe('pending');
     expect($exam->sections()->count())->toBe(3);
     expect(ExamParameter::query()->count())->toBe(26);
@@ -182,7 +182,7 @@ it('builds a result form definition from active HECES sections and parameters', 
 
     $definition = app(BuildExamResultFormDefinition::class)->handle($exam);
 
-    expect($definition['exam'])->toBe(['code' => 'HECES', 'name' => 'EXÁMEN DE HECES']);
+    expect($definition['exam'])->toBe(['code' => 'HECES', 'name' => 'Examen de heces']);
     expect(array_column($definition['sections'], 'code'))->toBe(['macroscopico', 'microscopico', 'parasitologico']);
     expect(array_map(fn (array $section): int => count($section['parameters']), $definition['sections']))->toBe([6, 9, 11]);
     expect($definition['sections'][0]['parameters'][0])

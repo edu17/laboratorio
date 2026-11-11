@@ -70,7 +70,7 @@ it('captures the published exam catalog version on the order', function () {
     $orderExam = $order->orderExams->sole();
 
     expect($orderExam->exam_catalog_version_id)->toBe($version->id);
-    expect($orderExam->catalog_snapshot['exam']['name'])->toBe('EXÁMEN DE HECES');
+    expect($orderExam->catalog_snapshot['exam']['name'])->toBe('Examen de heces');
     expect($orderExam->catalog_snapshot['sections'][0]['parameters'][0]['name'])->toBe('Color');
 });
 
