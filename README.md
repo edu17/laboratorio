@@ -1,3 +1,17 @@
+# LABORATORIO CLÍNICO-BIOLÓGICO ISMALEJ PRADO
+
+Sistema desarrollado por IteraTotal con Laravel, Filament y Dompdf.
+
+La documentación del estado implementado está en [DOCUMENTACION_IMPLEMENTADA.md](DOCUMENTACION_IMPLEMENTADA.md). Incluye módulos, permisos efectivos, modelo de datos, operación, reportes, QR, configuración, pruebas y pendientes.
+
+El flujo operativo de PDF utiliza Blade + Dompdf. GrapesJS se conserva como una POC independiente. La documentación distingue ambos flujos y no presenta los formatos clínicos pendientes como terminados.
+
+**Revisión del 11/11/2026:** suite completa aprobada, 79 pruebas y 660 aserciones. Despliegue y aceptación clínica final pendientes.
+
+---
+
+## Referencia del framework
+
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
 <p align="center">
