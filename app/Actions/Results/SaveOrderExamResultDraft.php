@@ -212,18 +212,18 @@ class SaveOrderExamResultDraft
                 $lockedOrder->update(['status' => Order::STATUS_IN_PROGRESS]);
             }
 
+            $calculatedParameters = array_keys(array_filter(
+                $normalizedValues,
+                fn (array $value): bool => ($value['calculated'] ?? false) === true,
+            ));
+
             AuditLog::create([
                 'user_id' => $actor->getKey(),
                 'action' => 'results_draft_saved',
                 'entity_type' => $lockedOrderExam->getMorphClass(),
                 'entity_id' => $lockedOrderExam->getKey(),
-                'metadata' => [
-                    'parameter_count' => count($normalizedValues),
-                    'calculated_parameters' => array_keys(array_filter(
-                        $normalizedValues,
-                        fn (array $value): bool => ($value['calculated'] ?? false) === true,
-                    )),
-                ],
+                'metadata' => ['parameter_count' => count($normalizedValues)]
+                    + ($calculatedParameters === [] ? [] : ['calculated_parameters' => $calculatedParameters]),
             ]);
 
             return $lockedOrderExam->fresh(['order', 'resultValues']);
