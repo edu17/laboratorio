@@ -1,5 +1,6 @@
     @php($formatPhone = fn (?string $phone): ?string => is_string($phone) && preg_match('/\A\d{8}\z/', $phone) === 1 ? substr($phone, 0, 4).'-'.substr($phone, 4) : $phone)
     <footer id="report-footer" class="report-footer">
+        @include('reports.signoff', ['report' => $report, 'isPreview' => $report['is_preview'] ?? false])
         <table class="contact-footer">
             <tbody>
                 <tr>

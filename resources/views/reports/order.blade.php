@@ -50,8 +50,8 @@
         .accent-bar { height: 2mm; background-color: #1d3b64; }
         .header-layout { width: 100%; margin-top: 3mm; }
         .header-layout td { vertical-align: middle; }
-        .logo-cell { width: 15mm; }
-        .header-logo { display: block; max-width: 14mm; max-height: 14mm; }
+        .logo-cell { width: 30mm; padding-right: 3mm; }
+        .header-logo { display: block; max-width: 30mm; max-height: 20mm; }
         .logo-monogram { width: 12mm; height: 12mm; border-radius: 2.5mm; background-color: #1d3b64; color: #fff; font-size: 11pt; font-weight: bold; line-height: 12mm; text-align: center; }
         .institution-name { color: #1d3b64; font-size: 11pt; font-weight: bold; line-height: 1.2; }
         .institution-detail { margin-top: 0.5mm; color: #4f5d6b; font-size: 7.2pt; }
@@ -71,8 +71,8 @@
         .details .inline-label { color: #4f5d6b; }
 
         /* Pie que se repite en cada página */
-        .report-footer { position: fixed; bottom: -{{ $footerReserveMm }}mm; left: 0; right: 0; border-top: 0.8pt solid #d5dde6; }
-        .contact-footer { width: 100%; }
+        .report-footer { position: fixed; bottom: -{{ $footerReserveMm }}mm; left: 0; right: 0; }
+        .contact-footer { width: 100%; margin-top: 1.5mm; border-top: 0.8pt solid #d5dde6; }
         .contact-footer td { padding-top: 1.6mm; vertical-align: top; color: #4f5d6b; font-size: 6.8pt; line-height: 1.45; }
         .contact-footer .footer-meta { width: 40%; text-align: right; }
 
@@ -134,20 +134,19 @@
         .matrix td:not(:first-child) { font-weight: bold; }
         .matrix-empty-status { padding: 1.5mm 2mm; color: #34404d; background-color: #eef2f6; border-radius: 1.5mm; font-size: 8pt; }
 
-        /* Cierre (una sola vez) */
-        .report-signoff { margin-top: 5mm; page-break-inside: avoid; }
+        /* Validación, firmas y sello: parte del pie fijo, en cada página */
         .signoff-box { width: 100%; table-layout: fixed; border: 0.8pt solid #d5dde6; border-radius: 2mm; }
-        .signoff-box td { padding: 2.6mm 3mm; vertical-align: bottom; }
-        .signoff-box .validation-cell { width: 34%; font-size: 7.6pt; line-height: 1.45; }
-        .signoff-box .signature-cell { text-align: center; }
+        .signoff-box td { padding: 1.6mm 2.5mm; vertical-align: bottom; }
+        .signoff-box .validation-cell { width: 27%; font-size: 7.4pt; line-height: 1.4; vertical-align: middle; }
+        .signoff-box .signature-cell { width: 28.5%; text-align: center; }
         .signoff-box .seal-cell { width: 16%; text-align: center; }
-        .validated-state { display: inline-block; margin-top: 1mm; padding: 0.4mm 1.8mm; color: #174c45; background-color: #e3f1ec; border-radius: 1.5mm; font-size: 7pt; font-weight: bold; }
-        .signature-image { display: block; max-width: 40mm; max-height: 13mm; margin: 0 auto 1mm; }
-        .signature-label { padding-top: 0.8mm; border-top: 0.6pt solid #9aa7b4; color: #34404d; font-size: 6.9pt; }
-        .seal-image { display: block; max-width: 17mm; max-height: 17mm; margin: 0 auto; }
-        .seal-label { margin-top: 0.5mm; color: #5c6a78; font-size: 6.2pt; }
+        .validated-state { display: inline-block; margin-top: 0.8mm; padding: 0.4mm 1.8mm; color: #174c45; background-color: #e3f1ec; border-radius: 1.5mm; font-size: 7pt; font-weight: bold; }
+        .signature-image { display: block; max-width: 56mm; max-height: 19mm; margin: 0 auto 0.8mm; }
+        .signature-label { padding-top: 0.6mm; border-top: 0.6pt solid #9aa7b4; color: #34404d; font-size: 6.9pt; }
+        .seal-image { display: block; max-width: 21mm; max-height: 21mm; margin: 0 auto; }
+        .seal-label { margin-top: 0.4mm; color: #5c6a78; font-size: 6.2pt; }
         .placeholder-cell { padding-top: 6mm; color: #5c6a78; border-top: 0.6pt dashed #9aa7b4; font-size: 7pt; }
-        .end-marker { margin-top: 2mm; color: #5c6a78; font-size: 6.6pt; letter-spacing: 0.8pt; text-align: center; text-transform: uppercase; }
+        .end-marker { margin-top: 3mm; color: #5c6a78; font-size: 6.6pt; letter-spacing: 0.8pt; text-align: center; text-transform: uppercase; page-break-before: avoid; }
 
         /* Heces en una sola página */
         .compact-report .exam-title { margin: 2.5mm 0 0.6mm; }
@@ -156,10 +155,7 @@
         .compact-report .paired-results td { padding-top: 0.45mm; padding-bottom: 0.45mm; font-size: 8pt; }
         .compact-report .matrix th { padding-top: 0.6mm; padding-bottom: 0.6mm; }
         .compact-report .matrix td { padding-top: 0.15mm; padding-bottom: 0.15mm; font-size: 7.6pt; }
-        .compact-report .report-signoff { margin-top: 2.5mm; }
-        .compact-report .signoff-box td { padding-top: 1.6mm; padding-bottom: 1.6mm; }
-        .compact-report .signature-image { max-height: 10mm; }
-        .compact-report .seal-image { max-width: 14mm; max-height: 14mm; }
+        .compact-report .end-marker { margin-top: 1.5mm; }
     </style>
 </head>
 <body class="{{ count($report['exams']) === 1 && ($report['exams'][0]['code'] ?? '') === 'HECES' ? 'compact-report' : '' }}">
@@ -430,7 +426,7 @@
             @endforeach
         @endforeach
 
-        @include('reports.signoff', ['report' => $report, 'isPreview' => $isPreview])
+        <p class="end-marker">— Fin del reporte —</p>
     </main>
 </body>
 </html>
