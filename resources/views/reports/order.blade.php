@@ -50,8 +50,8 @@
         .accent-bar { height: 2mm; background-color: #1d3b64; }
         .header-layout { width: 100%; margin-top: 3mm; }
         .header-layout td { vertical-align: middle; }
-        .logo-cell { width: 30mm; padding-right: 3mm; }
-        .header-logo { display: block; max-width: 30mm; max-height: 20mm; }
+        .logo-cell { width: 22mm; padding-right: 3mm; }
+        .header-logo { display: block; max-width: 21mm; max-height: 21mm; }
         .logo-monogram { width: 12mm; height: 12mm; border-radius: 2.5mm; background-color: #1d3b64; color: #fff; font-size: 11pt; font-weight: bold; line-height: 12mm; text-align: center; }
         .institution-name { color: #1d3b64; font-size: 11pt; font-weight: bold; line-height: 1.2; }
         .institution-detail { margin-top: 0.5mm; color: #4f5d6b; font-size: 7.2pt; }
@@ -137,13 +137,13 @@
         /* Validación, firmas y sello: parte del pie fijo, en cada página */
         .signoff-box { width: 100%; table-layout: fixed; border: 0.8pt solid #d5dde6; border-radius: 2mm; }
         .signoff-box td { padding: 1.6mm 2.5mm; vertical-align: bottom; }
-        .signoff-box .validation-cell { width: 27%; font-size: 7.4pt; line-height: 1.4; vertical-align: middle; }
-        .signoff-box .signature-cell { width: 28.5%; text-align: center; }
-        .signoff-box .seal-cell { width: 16%; text-align: center; }
+        .signoff-box .validation-cell { width: 26%; font-size: 7.2pt; line-height: 1.4; vertical-align: middle; }
+        .signoff-box .signature-cell { width: 25.5%; text-align: center; }
+        .signoff-box .seal-cell { width: 23%; text-align: center; vertical-align: middle; }
         .validated-state { display: inline-block; margin-top: 0.8mm; padding: 0.4mm 1.8mm; color: #174c45; background-color: #e3f1ec; border-radius: 1.5mm; font-size: 7pt; font-weight: bold; }
         .signature-image { display: block; max-width: 56mm; max-height: 19mm; margin: 0 auto 0.8mm; }
         .signature-label { padding-top: 0.6mm; border-top: 0.6pt solid #9aa7b4; color: #34404d; font-size: 6.9pt; }
-        .seal-image { display: block; max-width: 21mm; max-height: 21mm; margin: 0 auto; }
+        .seal-image { display: block; max-width: 40mm; max-height: 21mm; margin: 0 auto; }
         .seal-label { margin-top: 0.4mm; color: #5c6a78; font-size: 6.2pt; }
         .placeholder-cell { padding-top: 6mm; color: #5c6a78; border-top: 0.6pt dashed #9aa7b4; font-size: 7pt; }
         .end-marker { margin-top: 3mm; color: #5c6a78; font-size: 6.6pt; letter-spacing: 0.8pt; text-align: center; text-transform: uppercase; page-break-before: avoid; }
@@ -167,7 +167,9 @@
             <tbody>
                 <tr>
                     <td class="logo-cell">
-                        @if (filled($institution['logo_data_uri'] ?? null))
+                        @if (filled($institution['institutional_seal_data_uri'] ?? null))
+                            <img class="header-logo" src="{{ $institution['institutional_seal_data_uri'] }}" alt="Sello institucional">
+                        @elseif (filled($institution['logo_data_uri'] ?? null))
                             <img class="header-logo" src="{{ $institution['logo_data_uri'] }}" alt="Logotipo institucional">
                         @else
                             <div class="logo-monogram">{{ mb_strtoupper(mb_substr($institution['name'], 0, 1)) }}</div>
