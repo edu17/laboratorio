@@ -172,6 +172,18 @@ class OrderExam extends Model
     }
 
     /**
+     * Cuántos resultados exige el examen, contados igual que missingResults(): un valor por parámetro
+     * y un estado por cada matriz parasitológica.
+     */
+    public function requiredResultCount(): int
+    {
+        return collect($this->requestedCatalogSnapshot()['sections'] ?? [])
+            ->sum(fn (array $section): int => ($section['structure'] ?? null) === 'parasitological_matrix'
+                ? 1
+                : count($section['parameters'] ?? []));
+    }
+
+    /**
      * @return list<string>
      */
     public function requestedParameterCodes(): array

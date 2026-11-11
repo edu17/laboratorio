@@ -76,11 +76,7 @@ class CaptureOrderExamResults extends Page
 
     public function save(SaveOrderExamResultDraft $saveDraft): void
     {
-        $state = $this->form->getState();
-
-        $savedOrderExam = $saveDraft->handle($this->getOrderExam(), $state, auth()->user());
-        $this->orderExamRecord = $savedOrderExam->load('order.patient');
-        $this->form->fill($this->getFormValues($savedOrderExam));
+        $this->saveDraft($saveDraft);
 
         Notification::make()
             ->success()
@@ -90,14 +86,81 @@ class CaptureOrderExamResults extends Page
     }
 
     /**
+     * Guarda y abre el siguiente examen de la orden que el usuario puede capturar, para seguir la orden
+     * completa sin volver a la ficha.
+     */
+    public function saveAndNext(SaveOrderExamResultDraft $saveDraft): void
+    {
+        $this->saveDraft($saveDraft);
+        $nextOrderExam = $this->getNextOrderExam();
+
+        Notification::make()->success()->title('Borrador de resultados guardado')->send();
+
+        $this->redirect($nextOrderExam
+            ? OrderResource::getUrl('capture-results', ['record' => $this->orderId, 'orderExam' => $nextOrderExam])
+            : $this->getOrderViewUrl());
+    }
+
+    private function saveDraft(SaveOrderExamResultDraft $saveDraft): void
+    {
+        $state = $this->form->getState();
+
+        $saveDraft->handle($this->getOrderExam(), $state, auth()->user());
+        $this->orderExamRecord = null;
+        $this->form->fill($this->getFormValues($this->getOrderExam()));
+    }
+
+    /**
      * Se carga una vez por petición: lo usan la autorización, el formulario, la vista y el contador.
      */
     public function getOrderExam(): OrderExam
     {
-        return $this->orderExamRecord ??= OrderExam::query()
-            ->where('order_id', $this->orderId)
-            ->with(['order.patient', 'resultValues'])
-            ->findOrFail($this->orderExamId);
+        if ($this->orderExamRecord) {
+            return $this->orderExamRecord;
+        }
+
+        $order = Order::query()
+            ->with(['patient', 'orderExams.exam', 'orderExams.resultValues'])
+            ->findOrFail($this->orderId);
+        $order->orderExams->each(fn (OrderExam $orderExam): OrderExam => $orderExam->setRelation('order', $order));
+
+        return $this->orderExamRecord = $order->orderExams->find($this->orderExamId) ?? abort(404);
+    }
+
+    /**
+     * Los exámenes de la orden con su avance, para moverse entre ellos durante la captura.
+     *
+     * @return list<array{name: string, missing: int, required: int, is_current: bool, url: string|null}>
+     */
+    public function getOrderExamsProgress(): array
+    {
+        return $this->getOrderExam()->order->orderExams
+            ->map(fn (OrderExam $orderExam): array => [
+                'name' => $orderExam->catalog_snapshot['exam']['name'] ?? $orderExam->exam->name,
+                'missing' => count($orderExam->missingResults()),
+                'required' => $orderExam->requiredResultCount(),
+                'is_current' => $orderExam->getKey() === $this->orderExamId,
+                'url' => $orderExam->getKey() !== $this->orderExamId && (auth()->user()?->can('captureResults', $orderExam) ?? false)
+                    ? OrderResource::getUrl('capture-results', ['record' => $this->orderId, 'orderExam' => $orderExam])
+                    : null,
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * El siguiente examen capturable con pendientes, buscando primero después del actual; si ninguno tiene
+     * pendientes, null.
+     */
+    public function getNextOrderExam(): ?OrderExam
+    {
+        $orderExams = $this->getOrderExam()->order->orderExams->values();
+        $currentPosition = $orderExams->search(fn (OrderExam $orderExam): bool => $orderExam->getKey() === $this->orderExamId);
+
+        return $orderExams->slice($currentPosition + 1)
+            ->concat($orderExams->slice(0, $currentPosition))
+            ->first(fn (OrderExam $orderExam): bool => $orderExam->missingResults() !== []
+                && (auth()->user()?->can('captureResults', $orderExam) ?? false));
     }
 
     public function getMissingResultCount(): int
@@ -169,7 +232,7 @@ class CaptureOrderExamResults extends Page
                     };
 
                     $helperText = collect([
-                        $parameter['unit'] ?? null,
+                        $type === 'number' ? null : ($parameter['unit'] ?? null),
                         app(ResolveParameterReference::class)->handle($parameter, $patientSex, null)['text'],
                         isset(CalculateDerivedResults::FORMULAS[$code])
                             ? 'Se calcula al guardar si lo dejas vacío: '.CalculateDerivedResults::FORMULAS[$code]['description'].'. Si no aplica queda "No calculable". Puedes corregirlo escribiendo otro valor.'
@@ -177,6 +240,10 @@ class CaptureOrderExamResults extends Page
                     ])->filter(fn ($text): bool => filled($text))->implode(' · ');
 
                     $field->label($parameter['name'] ?? $code);
+
+                    if ($type === 'number' && filled($parameter['unit'] ?? null)) {
+                        $field->suffix($parameter['unit']);
+                    }
 
                     if (in_array($type, ['text', 'observation'], true)) {
                         $field->maxLength(2000);

@@ -3,6 +3,7 @@
 use App\Actions\Orders\CreateLabOrder;
 use App\Actions\Results\SaveOrderExamResultDraft;
 use App\Filament\Resources\Orders\OrderResource;
+use App\Filament\Resources\Orders\Pages\CaptureOrderExamResults;
 use App\Filament\Resources\Orders\Pages\ViewOrder;
 use App\Models\Exam;
 use App\Models\ExamParameter;
@@ -74,4 +75,29 @@ it('sends the capture button to the first exam that still has pending results', 
     Livewire::actingAs($this->technician)
         ->test(ViewOrder::class, ['record' => $order->getKey()])
         ->assertActionHasUrl('captureResults', OrderResource::getUrl('capture-results', ['record' => $order, 'orderExam' => $pendingOrderExam]));
+});
+
+it('shows the capture progress and saves before moving on to the next exam with pending results', function () {
+    $first = orderViewExam('PRIMERO', 'Primero ficticio', 2);
+    $second = orderViewExam('SEGUNDO', 'Segundo ficticio', 1);
+    $order = app(CreateLabOrder::class)->handle(Patient::factory()->create(), [$first->id, $second->id], $this->technician);
+    $firstOrderExam = $order->orderExams->firstWhere('exam_id', $first->id);
+    $secondOrderExam = $order->orderExams->firstWhere('exam_id', $second->id);
+
+    Livewire::actingAs($this->technician)
+        ->test(CaptureOrderExamResults::class, ['record' => $order->id, 'orderExam' => $firstOrderExam->id])
+        ->assertSee('0 de 2 resultados capturados')
+        ->assertSee('Segundo ficticio')
+        ->fillForm(['values' => ['primero_1' => ['value' => '0.7'], 'primero_2' => ['value' => '0.9']]])
+        ->call('saveAndNext')
+        ->assertHasNoFormErrors()
+        ->assertRedirect(OrderResource::getUrl('capture-results', ['record' => $order, 'orderExam' => $secondOrderExam]));
+
+    expect($firstOrderExam->fresh()->load('resultValues')->missingResults())->toBe([]);
+
+    Livewire::actingAs($this->technician)
+        ->test(CaptureOrderExamResults::class, ['record' => $order->id, 'orderExam' => $secondOrderExam->id])
+        ->fillForm(['values' => ['segundo_1' => ['value' => '0.8']]])
+        ->call('saveAndNext')
+        ->assertRedirect(OrderResource::getUrl('view', ['record' => $order]));
 });
