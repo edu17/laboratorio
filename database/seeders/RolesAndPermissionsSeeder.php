@@ -36,7 +36,7 @@ class RolesAndPermissionsSeeder extends Seeder
                 'ViewAny:Exam', 'View:Exam', 'Create:Exam', 'Update:Exam',
                 'ViewAny:ExamSection', 'View:ExamSection', 'Create:ExamSection', 'Update:ExamSection',
                 'ViewAny:ExamParameter', 'View:ExamParameter', 'Create:ExamParameter', 'Update:ExamParameter',
-                'ViewAny:Order', 'View:Order', 'Create:Order', 'Update:Order', 'Cancel:Order',
+                'ViewAny:Order', 'View:Order', 'Create:Order', 'Update:Order', 'Cancel:Order', 'Export:Order',
                 'Validate:Order', 'Reopen:Order',
                 'Capture:Result', 'View:Result',
                 'Generate:Report', 'Publish:Report', 'Revoke:Report',

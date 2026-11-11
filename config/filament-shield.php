@@ -273,6 +273,7 @@ return [
         'Validate:Order' => 'Validar órdenes',
         'Reopen:Order' => 'Reabrir órdenes validadas',
         'Cancel:Order' => 'Anular órdenes',
+        'Export:Order' => 'Exportar órdenes a Excel',
         'Generate:Report' => 'Ver e imprimir reportes',
         'Publish:Report' => 'Publicar reportes (QR)',
         'Revoke:Report' => 'Revocar acceso QR',

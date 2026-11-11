@@ -24,6 +24,14 @@ class OrderPolicy
     }
 
     /**
+     * Exportar a Excel saca datos de pacientes del sistema: es un permiso aparte de ver la lista.
+     */
+    public function export(User $user): bool
+    {
+        return $user->can('ViewAny:Order') && $user->can('Export:Order');
+    }
+
+    /**
      * Determine whether the user can create models.
      */
     public function create(User $user): bool

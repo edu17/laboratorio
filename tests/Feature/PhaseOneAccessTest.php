@@ -47,7 +47,7 @@ it('seeds roles idempotently without creating users or duplicate permissions', f
     $this->seed(RolesAndPermissionsSeeder::class);
 
     $this->assertDatabaseCount('roles', 4);
-    $this->assertDatabaseCount('permissions', 38);
+    $this->assertDatabaseCount('permissions', 39);
     $this->assertDatabaseCount('users', 0);
     expect(Role::findByName('Técnico')->hasPermissionTo('Manage:User'))->toBeFalse()
         ->and(Role::findByName('Recepción')->permissions->pluck('name')->sort()->values()->all())
