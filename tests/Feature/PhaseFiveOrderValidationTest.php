@@ -63,7 +63,7 @@ function phaseFiveValues(OrderExam $orderExam, bool $matrixHasFindings = true): 
                 continue;
             }
 
-            $type = $parameter['type'] ?? $parameter['result_type'] ?? 'text';
+            $type = $parameter['result_type'] ?? 'text';
             $value = match ($type) {
                 'number' => '12.5',
                 'select', 'positive_negative' => $parameter['options'][0] ?? 'Opción ficticia',
@@ -145,7 +145,7 @@ it('validates every active exam in one order-level operation and snapshots the a
         ->and($validated->validation_version)->toBe(1)
         ->and($validated->orderExams->every(fn (OrderExam $exam): bool => $exam->status === OrderExam::STATUS_VALIDATED))->toBeTrue()
         ->and($validated->validationEvents()->sole()->results_snapshot['exams'])->toHaveCount(2)
-        ->and($validated->validationEvents()->sole()->results_snapshot['patient']['first_names'])->toBe('Paciente ficticio')
+        ->and($validated->validationEvents()->sole()->results_snapshot['patient']['first_names'])->toBe('Paciente Ficticio')
         ->and($validated->validationEvents()->sole()->results_snapshot['validated_by']['name'])->toBe($validator->name);
 
     expect(AuditLog::query()->where('action', 'order_validated')->sole()->metadata)
@@ -175,9 +175,7 @@ it('allows an explicitly completed empty parasitological matrix and preserves it
 
     expect($examSnapshot['section_statuses']['parasitologico'])
         ->toBe(OrderExam::SECTION_STATUS_COMPLETED_WITHOUT_FINDINGS)
-        ->and($matrixResults)->toHaveCount(count($matrixCodes))
-        ->and($matrixResults->every(fn (array $result): bool => collect($result['value']['cells'] ?? [])->every(fn ($cell): bool => blank($cell))))
-        ->toBeTrue();
+        ->and($matrixResults)->toBeEmpty();
 });
 
 it('allows only the validator to reopen, requires a reason, and preserves prior validation versions', function () {

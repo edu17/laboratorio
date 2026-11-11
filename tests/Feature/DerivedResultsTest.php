@@ -149,5 +149,5 @@ it('does not calculate when an input analysis was not requested', function () {
 
     $values = derivedSave($this->technician, $orderExam, ['bilirrubina_total' => '1.9', 'bilirrubina_indirecta' => null]);
 
-    expect($values['bilirrubina_indirecta'])->toBe(['value' => null]);
+    expect($values)->not->toHaveKey('bilirrubina_indirecta');
 });

@@ -8,6 +8,9 @@ use DOMElement;
 use Dompdf\Canvas;
 use Dompdf\FontMetrics;
 use Dompdf\Frame;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\HeaderUtils;
 
 class RenderValidatedOrderPdf
 {
@@ -15,6 +18,49 @@ class RenderValidatedOrderPdf
     public const SIDE_MARGIN_MM = 14;
 
     public const BOTTOM_PAGE_MARGIN_MM = 15;
+
+    public const CACHE_DIRECTORY = 'report-cache';
+
+    /**
+     * Respuesta HTTP del PDF (en línea o como descarga), servida desde la caché y sin guardar en el navegador.
+     *
+     * @param  array<string, mixed>  $report
+     */
+    public function response(array $report, bool $download): Response
+    {
+        $filename = sprintf('reporte-%s-v%d.pdf', $report['order']['number'], $report['validation']['version']);
+
+        return response($this->cachedOutput($report), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => HeaderUtils::makeDisposition($download ? HeaderUtils::DISPOSITION_ATTACHMENT : HeaderUtils::DISPOSITION_INLINE, $filename),
+            'Cache-Control' => 'private, no-store, max-age=0',
+            'Pragma' => 'no-cache',
+        ]);
+    }
+
+    /**
+     * Devuelve los bytes del PDF, reutilizando el archivo ya generado si el reporte no cambió.
+     * La clave es una huella de todo el contenido salvo la hora de generación: si se reabre, revalida
+     * o cambia cualquier dato, la huella cambia y se genera de nuevo.
+     *
+     * @param  array<string, mixed>  $report
+     */
+    public function cachedOutput(array $report): string
+    {
+        $content = $report;
+        unset($content['generated_at']);
+        $path = self::CACHE_DIRECTORY.'/'.hash('sha256', json_encode($content, JSON_UNESCAPED_UNICODE)).'.pdf';
+        $disk = Storage::disk('local');
+
+        if ($disk->exists($path)) {
+            return $disk->get($path);
+        }
+
+        $bytes = $this->handle($report)->output();
+        $disk->put($path, $bytes);
+
+        return $bytes;
+    }
 
     /**
      * Renderiza dos veces: la primera mide el encabezado y el pie que se repiten en cada página,
@@ -100,6 +146,7 @@ class RenderValidatedOrderPdf
                 'isRemoteEnabled' => false,
                 'isPhpEnabled' => false,
                 'isJavascriptEnabled' => false,
+                'isFontSubsettingEnabled' => true,
             ]);
     }
 }

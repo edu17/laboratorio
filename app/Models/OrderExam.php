@@ -25,6 +25,15 @@ class OrderExam extends Model
 
     public const STATUS_WITHDRAWN = 'retirado';
 
+    /** @var array<string, string> Etiquetas legibles para el panel. */
+    public const STATUS_LABELS = [
+        self::STATUS_PENDING => 'Pendiente',
+        self::STATUS_IN_PROGRESS => 'En proceso',
+        self::STATUS_VALIDATED => 'Validado',
+        self::STATUS_CANCELED => 'Anulado',
+        self::STATUS_WITHDRAWN => 'Retirado',
+    ];
+
     public const SECTION_STATUS_PENDING = 'pending';
 
     public const SECTION_STATUS_COMPLETED_WITH_FINDINGS = 'completed_with_findings';
@@ -112,6 +121,66 @@ class OrderExam extends Model
         $snapshot['sections'] = $sections;
 
         return $snapshot;
+    }
+
+    /**
+     * Lo que falta para dar por completo el examen, en el orden del catálogo: cada parámetro solicitado
+     * sin valor ("Sección / Parámetro") y cada matriz sin estado coherente con sus hallazgos.
+     * Es la única definición de "completo": la usan la validación y el contador de la captura.
+     *
+     * @return list<string>
+     */
+    public function missingResults(): array
+    {
+        $storedValues = $this->resultValues->keyBy('parameter_code');
+        $sections = $this->requestedCatalogSnapshot()['sections'] ?? [];
+        $missing = [];
+
+        foreach ($sections as $section) {
+            $sectionName = $section['name'] ?? 'Sección';
+
+            if (($section['structure'] ?? null) === 'parasitological_matrix') {
+                $status = $this->section_statuses[$section['code'] ?? ''] ?? self::SECTION_STATUS_PENDING;
+                $hasFindings = collect($section['parameters'] ?? [])
+                    ->flatMap(fn (array $parameter): array => array_values($storedValues->get($parameter['code'] ?? '')?->value['cells'] ?? []))
+                    ->contains(fn (mixed $cell): bool => filled($cell));
+                $isComplete = match ($status) {
+                    self::SECTION_STATUS_COMPLETED_WITH_FINDINGS => $hasFindings,
+                    self::SECTION_STATUS_COMPLETED_WITHOUT_FINDINGS => ! $hasFindings,
+                    default => false,
+                };
+
+                if (! $isComplete) {
+                    $missing[] = $sectionName.' / Selecciona un estado y confirma si hay hallazgos.';
+                }
+
+                continue;
+            }
+
+            foreach ($section['parameters'] ?? [] as $parameter) {
+                if (! filled($storedValues->get($parameter['code'] ?? '')?->value['value'] ?? null)) {
+                    $missing[] = $sectionName.' / '.($parameter['name'] ?? $parameter['code']);
+                }
+            }
+        }
+
+        if (collect($sections)->sum(fn (array $section): int => count($section['parameters'] ?? [])) === 0) {
+            $missing[] = 'Sin parámetros configurados';
+        }
+
+        return $missing;
+    }
+
+    /**
+     * Cuántos resultados exige el examen, contados igual que missingResults(): un valor por parámetro
+     * y un estado por cada matriz parasitológica.
+     */
+    public function requiredResultCount(): int
+    {
+        return collect($this->requestedCatalogSnapshot()['sections'] ?? [])
+            ->sum(fn (array $section): int => ($section['structure'] ?? null) === 'parasitological_matrix'
+                ? 1
+                : count($section['parameters'] ?? []));
     }
 
     /**

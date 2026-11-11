@@ -17,6 +17,11 @@ class ExamsTable
             ->columns([
                 TextColumn::make('code')->label('Código')->searchable()->sortable(),
                 TextColumn::make('name')->label('Examen')->searchable()->sortable(),
+                TextColumn::make('category')
+                    ->label('Grupo')
+                    ->formatStateUsing(fn (?string $state): string => Exam::CATEGORIES[$state] ?? 'Otros exámenes')
+                    ->placeholder('Otros exámenes')
+                    ->sortable(),
                 TextColumn::make('sections_count')->counts('sections')->label('Secciones'),
                 TextColumn::make('catalog_versions_count')->counts('catalogVersions')->label('Versiones publicadas'),
                 TextColumn::make('clinical_validation_status')->label('Validación clínica')->badge()

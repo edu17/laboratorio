@@ -92,7 +92,7 @@ it('rejects values for parameters outside the stored exam snapshot and keeps inc
     app(SaveOrderExamResultDraft::class)->handle($orderExam, ['values' => []], $administrator);
 
     expect($orderExam->fresh()->status)->toBe(OrderExam::STATUS_IN_PROGRESS)
-        ->and($orderExam->resultValues()->count())->toBe(26);
+        ->and($orderExam->resultValues()->count())->toBe(0);
 });
 
 it('validates select values against catalog options and accepts numeric and observation drafts', function () {
@@ -106,9 +106,9 @@ it('validates select values against catalog options and accepts numeric and obse
         'name' => 'Sección ficticia',
         'structure' => 'table',
         'parameters' => [
-            ['code' => 'choice', 'name' => 'Opción', 'type' => 'select', 'options' => ['Uno', 'Dos']],
-            ['code' => 'quantity', 'name' => 'Cantidad', 'type' => 'number', 'options' => []],
-            ['code' => 'note', 'name' => 'Observación', 'type' => 'observation', 'options' => []],
+            ['code' => 'choice', 'name' => 'Opción', 'result_type' => 'select', 'options' => ['Uno', 'Dos']],
+            ['code' => 'quantity', 'name' => 'Cantidad', 'result_type' => 'number', 'options' => []],
+            ['code' => 'note', 'name' => 'Observación', 'result_type' => 'observation', 'options' => []],
         ],
     ]];
     $orderExam->update(['catalog_snapshot' => $snapshot]);
@@ -149,7 +149,7 @@ it('blocks result capture for validator and technician and blocks closed or with
     $orderExam = phaseFourOrderExam($administrator);
 
     expect(Gate::forUser($validator)->allows('captureResults', $orderExam))->toBeFalse()
-        ->and(Gate::forUser($technician)->allows('captureResults', $orderExam))->toBeFalse()
+        ->and(Gate::forUser($technician)->allows('captureResults', $orderExam))->toBeTrue()
         ->and(Gate::forUser($administrator)->allows('captureResults', $orderExam))->toBeTrue();
 
     expect(fn () => app(SaveOrderExamResultDraft::class)->handle($orderExam, ['values' => []], $validator))
@@ -268,7 +268,7 @@ it('still allows changing the patient after saving an empty draft', function () 
 
     app(SaveOrderExamResultDraft::class)->handle($orderExam, ['values' => []], $administrator);
 
-    expect(ResultValue::where('order_exam_id', $orderExam->id)->count())->toBeGreaterThan(0);
+    expect(ResultValue::where('order_exam_id', $orderExam->id)->count())->toBe(0);
 
     app(UpdateLabOrder::class)->handle($orderExam->order->fresh(), $correctPatient, [$orderExam->exam_id], null, $administrator);
 

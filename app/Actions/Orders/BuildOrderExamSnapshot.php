@@ -2,12 +2,13 @@
 
 namespace App\Actions\Orders;
 
-use App\Actions\Exams\BuildExamResultFormDefinition;
+use App\Actions\Exams\BuildExamSnapshot;
 use App\Models\Exam;
+use Illuminate\Validation\ValidationException;
 
 class BuildOrderExamSnapshot
 {
-    public function __construct(private BuildExamResultFormDefinition $formDefinition) {}
+    public function __construct(private BuildExamSnapshot $buildSnapshot) {}
 
     /**
      * Estructura del examen que se congela en la orden: la última versión publicada o, si no hay, el catálogo vigente.
@@ -16,7 +17,13 @@ class BuildOrderExamSnapshot
      */
     public function handle(Exam $exam): array
     {
+        if (! $exam->is_active) {
+            throw ValidationException::withMessages([
+                'exam' => 'No se puede solicitar un examen inactivo.',
+            ]);
+        }
+
         return $exam->latestCatalogVersion?->snapshot
-            ?? $this->formDefinition->handle($exam);
+            ?? $this->buildSnapshot->handle($exam);
     }
 }

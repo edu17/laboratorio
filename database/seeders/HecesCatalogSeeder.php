@@ -23,6 +23,7 @@ class HecesCatalogSeeder extends Seeder
                 ['code' => 'HECES'],
                 [
                     'name' => $definition['exam_name'],
+                    'category' => $definition['category'] ?? null,
                     'source' => $definition['source'],
                     'clinical_validation_status' => 'pending',
                     'is_active' => true,

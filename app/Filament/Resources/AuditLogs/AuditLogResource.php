@@ -11,12 +11,17 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use UnitEnum;
 
 class AuditLogResource extends Resource
 {
     protected static ?string $model = AuditLog::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentMagnifyingGlass;
+
+    protected static ?int $navigationSort = 3;
+
+    protected static UnitEnum|string|null $navigationGroup = 'Administración';
 
     protected static ?string $recordTitleAttribute = 'action';
 

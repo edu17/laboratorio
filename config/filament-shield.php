@@ -268,11 +268,20 @@ return [
 
     'custom_permissions' => [
         'Access:Panel' => 'Acceder al panel',
+        'Capture:Result' => 'Capturar resultados',
+        'View:Result' => 'Ver resultados',
+        'Validate:Order' => 'Validar órdenes',
+        'Reopen:Order' => 'Reabrir órdenes validadas',
+        'Cancel:Order' => 'Anular órdenes',
+        'Export:Order' => 'Exportar órdenes a Excel',
+        'Generate:Report' => 'Ver e imprimir reportes',
+        'Publish:Report' => 'Publicar reportes (QR)',
+        'Revoke:Report' => 'Revocar acceso QR',
         'Manage:User' => 'Gestionar usuarios',
         'Manage:Role' => 'Gestionar roles y permisos',
+        'Manage:LabSettings' => 'Configurar datos del laboratorio',
         'Manage:Template' => 'Gestionar plantillas POC',
         'View:Audit' => 'Consultar auditoría',
-        'Cancel:Order' => 'Anular órdenes',
     ],
 
     /*

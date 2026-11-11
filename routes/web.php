@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ExamPreviewPdfController;
+use App\Http\Controllers\LabBrandMarkController;
 use App\Http\Controllers\OrderReportPdfController;
 use App\Http\Controllers\PublicOrderReportPdfController;
 use Illuminate\Http\RedirectResponse;
@@ -8,6 +9,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn (): RedirectResponse => redirect()->route('filament.admin.pages.dashboard'))
     ->name('home');
+
+Route::get('/marca', LabBrandMarkController::class)->name('lab.brand-mark');
 
 if (file_exists(__DIR__.'/plantillas.php')) {
     require __DIR__.'/plantillas.php';

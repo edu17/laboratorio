@@ -26,6 +26,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
+use Spatie\Permission\Models\Role;
 
 uses(LazilyRefreshDatabase::class);
 
@@ -287,7 +288,12 @@ it('streams and downloads a PDF only for an authorized user with a current valid
         ->assertOk()
         ->assertHeader('Content-Disposition', 'attachment; filename=reporte-'.$order->number.'-v1.pdf');
 
-    $this->actingAs($technician)->get(route('orders.report', $order))->assertForbidden();
+    $this->actingAs($technician)->get(route('orders.report', $order))->assertOk();
+
+    $withoutReportPermission = User::factory()->create();
+    $withoutReportPermission->assignRole(Role::create(['name' => 'Sin reportes', 'guard_name' => 'web'])
+        ->givePermissionTo(['Access:Panel', 'ViewAny:Order', 'View:Order']));
+    $this->actingAs($withoutReportPermission)->get(route('orders.report', $order))->assertForbidden();
 });
 
 it('requires authentication and blocks drafts and reopened orders from report generation', function (): void {
@@ -324,13 +330,13 @@ it('builds the report from the immutable validation snapshot and escapes its con
         ->and($report['patient']['age_display'])->toBe('26 años')
         ->and($report['order']['referring_doctor'])->toBe('Dra. Ficticia <Referencia>')
         ->and($html)->toContain('Dra. Ficticia &lt;Referencia&gt;')
-        ->and($report['patient']['first_names'])->toContain('<script>alert(1)</script>')
+        ->and($report['patient']['first_names'])->toContain('<Script>Alert(1)</Script>')
         ->and($report['exams'][0]['sections'][0]['rows'][0]['result'])->toBe('Resultado ficticio')
         ->and($html)->toContain('class="exam-title"')
         ->and($html)->toContain('class="results paired-results"')
         ->and($html)->toContain('class="validated-state">Validado</span>')
-        ->and($html)->toContain('&lt;script&gt;')
-        ->and($html)->not->toContain('<script>alert(1)</script>')
+        ->and($html)->toContain('&lt;Script&gt;')
+        ->and($html)->not->toContain('<Script>Alert(1)</Script>')
         ->and($html)->not->toContain('Resultado posterior')
         ->and($report['exams'][0]['sections'][0]['rows'][0]['reference'])->toBe('');
 });

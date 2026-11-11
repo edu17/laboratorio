@@ -28,6 +28,7 @@ abstract class CatalogDefinitionSeeder extends Seeder
                     ['code' => $examDefinition['code']],
                     [
                         'name' => $examDefinition['name'],
+                        'category' => $definition['category'] ?? null,
                         'source' => $source,
                         'clinical_validation_status' => 'validated',
                         'is_active' => true,

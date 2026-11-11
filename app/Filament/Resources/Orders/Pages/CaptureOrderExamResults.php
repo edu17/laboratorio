@@ -28,6 +28,13 @@ class CaptureOrderExamResults extends Page
 
     protected static bool $shouldRegisterNavigation = false;
 
+    protected static ?string $breadcrumb = 'Capturar resultados';
+
+    public function getTitle(): string
+    {
+        return 'Capturar resultados · '.($this->getOrderExam()->catalog_snapshot['exam']['name'] ?? 'Examen');
+    }
+
     #[Locked]
     public int $orderId;
 
@@ -36,6 +43,8 @@ class CaptureOrderExamResults extends Page
 
     /** @var array<string, mixed>|null */
     public ?array $data = [];
+
+    private ?OrderExam $orderExamRecord = null;
 
     public function mount(int|string $record, int|string $orderExam): void
     {
@@ -53,8 +62,9 @@ class CaptureOrderExamResults extends Page
 
     public function hydrate(): void
     {
-        Gate::authorize('view', Order::query()->findOrFail($this->orderId));
-        Gate::authorize('captureResults', $this->getOrderExam());
+        $orderExam = $this->getOrderExam();
+        Gate::authorize('view', $orderExam->order);
+        Gate::authorize('captureResults', $orderExam);
     }
 
     public function form(Schema $schema): Schema
@@ -66,10 +76,7 @@ class CaptureOrderExamResults extends Page
 
     public function save(SaveOrderExamResultDraft $saveDraft): void
     {
-        $state = $this->form->getState();
-
-        $savedOrderExam = $saveDraft->handle($this->getOrderExam(), $state, auth()->user());
-        $this->form->fill($this->getFormValues($savedOrderExam));
+        $this->saveDraft($saveDraft);
 
         Notification::make()
             ->success()
@@ -78,59 +85,87 @@ class CaptureOrderExamResults extends Page
             ->send();
     }
 
+    /**
+     * Guarda y abre el siguiente examen de la orden que el usuario puede capturar, para seguir la orden
+     * completa sin volver a la ficha.
+     */
+    public function saveAndNext(SaveOrderExamResultDraft $saveDraft): void
+    {
+        $this->saveDraft($saveDraft);
+        $nextOrderExam = $this->getNextOrderExam();
+
+        Notification::make()->success()->title('Borrador de resultados guardado')->send();
+
+        $this->redirect($nextOrderExam
+            ? OrderResource::getUrl('capture-results', ['record' => $this->orderId, 'orderExam' => $nextOrderExam])
+            : $this->getOrderViewUrl());
+    }
+
+    private function saveDraft(SaveOrderExamResultDraft $saveDraft): void
+    {
+        $state = $this->form->getState();
+
+        $saveDraft->handle($this->getOrderExam(), $state, auth()->user());
+        $this->orderExamRecord = null;
+        $this->form->fill($this->getFormValues($this->getOrderExam()));
+    }
+
+    /**
+     * Se carga una vez por petición: lo usan la autorización, el formulario, la vista y el contador.
+     */
     public function getOrderExam(): OrderExam
     {
-        return OrderExam::query()
-            ->where('order_id', $this->orderId)
-            ->with(['order.patient', 'resultValues'])
-            ->findOrFail($this->orderExamId);
+        if ($this->orderExamRecord) {
+            return $this->orderExamRecord;
+        }
+
+        $order = Order::query()
+            ->with(['patient', 'orderExams.exam', 'orderExams.resultValues'])
+            ->findOrFail($this->orderId);
+        $order->orderExams->each(fn (OrderExam $orderExam): OrderExam => $orderExam->setRelation('order', $order));
+
+        return $this->orderExamRecord = $order->orderExams->find($this->orderExamId) ?? abort(404);
+    }
+
+    /**
+     * Los exámenes de la orden con su avance, para moverse entre ellos durante la captura.
+     *
+     * @return list<array{name: string, missing: int, required: int, is_current: bool, url: string|null}>
+     */
+    public function getOrderExamsProgress(): array
+    {
+        return $this->getOrderExam()->order->orderExams
+            ->map(fn (OrderExam $orderExam): array => [
+                'name' => $orderExam->catalog_snapshot['exam']['name'] ?? $orderExam->exam->name,
+                'missing' => count($orderExam->missingResults()),
+                'required' => $orderExam->requiredResultCount(),
+                'is_current' => $orderExam->getKey() === $this->orderExamId,
+                'url' => $orderExam->getKey() !== $this->orderExamId && (auth()->user()?->can('captureResults', $orderExam) ?? false)
+                    ? OrderResource::getUrl('capture-results', ['record' => $this->orderId, 'orderExam' => $orderExam])
+                    : null,
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * El siguiente examen capturable con pendientes, buscando primero después del actual; si ninguno tiene
+     * pendientes, null.
+     */
+    public function getNextOrderExam(): ?OrderExam
+    {
+        $orderExams = $this->getOrderExam()->order->orderExams->values();
+        $currentPosition = $orderExams->search(fn (OrderExam $orderExam): bool => $orderExam->getKey() === $this->orderExamId);
+
+        return $orderExams->slice($currentPosition + 1)
+            ->concat($orderExams->slice(0, $currentPosition))
+            ->first(fn (OrderExam $orderExam): bool => $orderExam->missingResults() !== []
+                && (auth()->user()?->can('captureResults', $orderExam) ?? false));
     }
 
     public function getMissingResultCount(): int
     {
-        $orderExam = $this->getOrderExam();
-        $storedValues = $orderExam->resultValues->keyBy('parameter_code');
-        $sectionStatuses = $orderExam->section_statuses ?? [];
-        $missingCount = 0;
-
-        foreach ($orderExam->requestedCatalogSnapshot()['sections'] ?? [] as $section) {
-            $isMatrix = ($section['structure'] ?? null) === 'parasitological_matrix';
-
-            if ($isMatrix) {
-                $sectionCode = $section['code'] ?? null;
-                $hasFindings = collect($section['parameters'] ?? [])
-                    ->flatMap(fn (array $parameter): array => array_values($storedValues->get($parameter['code'] ?? '')?->value['cells'] ?? []))
-                    ->contains(fn (mixed $cell): bool => filled($cell));
-                $status = is_string($sectionCode) ? ($sectionStatuses[$sectionCode] ?? OrderExam::SECTION_STATUS_PENDING) : OrderExam::SECTION_STATUS_PENDING;
-                $isComplete = match ($status) {
-                    OrderExam::SECTION_STATUS_COMPLETED_WITH_FINDINGS => $hasFindings,
-                    OrderExam::SECTION_STATUS_COMPLETED_WITHOUT_FINDINGS => ! $hasFindings,
-                    default => false,
-                };
-
-                if (! $isComplete) {
-                    $missingCount++;
-                }
-
-                continue;
-            }
-
-            foreach ($section['parameters'] ?? [] as $parameter) {
-                $code = $parameter['code'] ?? null;
-
-                if (! is_string($code)) {
-                    continue;
-                }
-
-                $stored = $storedValues->get($code)?->value ?? [];
-
-                if (blank($stored['value'] ?? null)) {
-                    $missingCount++;
-                }
-            }
-        }
-
-        return $missingCount;
+        return count($this->getOrderExam()->missingResults());
     }
 
     public function getOrderViewUrl(): string
@@ -183,7 +218,7 @@ class CaptureOrderExamResults extends Page
                         continue;
                     }
 
-                    $type = $parameter['type'] ?? $parameter['result_type'] ?? 'text';
+                    $type = $parameter['result_type'] ?? 'text';
                     $field = match ($type) {
                         'number' => TextInput::make("values.{$code}.value")
                             ->maxLength(30)
@@ -197,7 +232,7 @@ class CaptureOrderExamResults extends Page
                     };
 
                     $helperText = collect([
-                        $parameter['unit'] ?? null,
+                        $type === 'number' ? null : ($parameter['unit'] ?? null),
                         app(ResolveParameterReference::class)->handle($parameter, $patientSex, null)['text'],
                         isset(CalculateDerivedResults::FORMULAS[$code])
                             ? 'Se calcula al guardar si lo dejas vacío: '.CalculateDerivedResults::FORMULAS[$code]['description'].'. Si no aplica queda "No calculable". Puedes corregirlo escribiendo otro valor.'
@@ -205,6 +240,10 @@ class CaptureOrderExamResults extends Page
                     ])->filter(fn ($text): bool => filled($text))->implode(' · ');
 
                     $field->label($parameter['name'] ?? $code);
+
+                    if ($type === 'number' && filled($parameter['unit'] ?? null)) {
+                        $field->suffix($parameter['unit']);
+                    }
 
                     if (in_array($type, ['text', 'observation'], true)) {
                         $field->maxLength(2000);
