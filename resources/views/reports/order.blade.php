@@ -246,7 +246,11 @@
                                         @if ($row)
                                             <td class="parameter-name">{{ $row['name'] }}</td>
                                             <td class="result-value">
-                                                {{ $row['result'] }}
+                                                @if (! empty($row['flag']))
+                                                    <strong class="out-of-range">*{{ $row['result'] }}</strong>
+                                                @else
+                                                    {{ $row['result'] }}
+                                                @endif
                                                 @if (filled($row['unit']))
                                                     <span class="result-detail">{{ $row['unit'] }}</span>
                                                 @endif
@@ -296,7 +300,13 @@
                                         @endforeach
                                     @else
                                         <td>{{ $row['name'] }}</td>
-                                        <td>{{ $row['result'] }}</td>
+                                        <td>
+                                            @if (! empty($row['flag']))
+                                                <strong class="out-of-range">*{{ $row['result'] }}</strong>
+                                            @else
+                                                {{ $row['result'] }}
+                                            @endif
+                                        </td>
                                         <td>{{ $row['unit'] }}</td>
                                         <td>{{ $row['reference'] }}</td>
                                     @endif

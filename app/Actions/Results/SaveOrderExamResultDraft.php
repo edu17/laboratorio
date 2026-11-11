@@ -108,17 +108,25 @@ class SaveOrderExamResultDraft
             }
 
             $rules = match ($definition['type']) {
-                'number' => ['nullable', 'numeric', 'max:99999999999999999999999999999999999999'],
+                'number' => ['nullable', 'string', 'max:30', 'regex:'.ResolveParameterReference::NUMBER_PATTERN],
                 'select', 'positive_negative' => $definition['options'] !== []
                     ? ['nullable', 'string', Rule::in($definition['options'])]
                     : ['nullable', 'string', 'max:2000'],
                 default => ['nullable', 'string', 'max:2000'],
             };
 
-            Validator::make(['value' => $value], ['value' => $rules])->validate();
+            Validator::make(
+                ['value' => is_int($value) || is_float($value) ? (string) $value : $value],
+                ['value' => $rules],
+                ['value.regex' => 'Escribe un número, con comparador opcional (por ejemplo 1.02 o < 2.5).'],
+            )->validate();
+
+            $value = filled($value) ? trim((string) $value) : null;
 
             $normalizedValues[$definition['code']] = [
-                'value' => filled($value) ? trim((string) $value) : null,
+                'value' => $value !== null && $definition['type'] === 'number'
+                    ? ResolveParameterReference::normalizeNumber($value)
+                    : $value,
             ];
         }
 

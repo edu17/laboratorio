@@ -2,6 +2,7 @@
 
 namespace App\Actions\Orders;
 
+use App\Actions\Results\ResolveParameterReference;
 use App\Models\Order;
 use App\Models\OrderExam;
 use App\Models\OrderValidationEvent;
@@ -16,6 +17,8 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class BuildValidatedOrderReportData
 {
+    public function __construct(private ResolveParameterReference $resolveReference) {}
+
     /**
      * @return array<string, mixed>
      */
@@ -86,7 +89,7 @@ class BuildValidatedOrderReportData
                 'validated_at_display' => Carbon::parse($snapshot['validated_at'] ?? $event->acted_at)->format('d/m/Y H:i'),
                 'validator_name' => $snapshot['validated_by']['name'] ?? $event->actor->name,
             ],
-            'exams' => array_map(fn (array $exam): array => $this->formatExam($exam), $snapshot['exams']),
+            'exams' => array_map(fn (array $exam): array => $this->formatExam($exam, $snapshot['patient']['sex'] ?? null), $snapshot['exams']),
         ];
 
         $activeAccessToken = $order->reportAccessTokens()
@@ -190,7 +193,7 @@ class BuildValidatedOrderReportData
      * @param  array<string, mixed>  $exam
      * @return array<string, mixed>
      */
-    private function formatExam(array $exam): array
+    private function formatExam(array $exam, ?string $patientSex): array
     {
         $catalog = $exam['catalog_snapshot'] ?? [];
         $storedResults = collect($exam['results'] ?? [])->keyBy('parameter_code');
@@ -231,13 +234,13 @@ class BuildValidatedOrderReportData
                 }
 
                 $referenceApproved = ($parameter['clinical_validation_status'] ?? null) === 'validated';
+                $reference = $this->resolveReference->handle($parameter, $patientSex, $stored['value'] ?? null);
                 $rows[] = [
                     'name' => $parameter['name'] ?? $code,
                     'result' => $this->displayValue($stored['value'] ?? null),
                     'unit' => $this->displayValue($parameter['unit'] ?? null),
-                    'reference' => $referenceApproved
-                        ? $this->displayValue($parameter['reference_text'] ?? $parameter['reference'] ?? null)
-                        : '',
+                    'reference' => $referenceApproved ? $reference['text'] : '',
+                    'flag' => $referenceApproved ? $reference['flag'] : null,
                 ];
             }
 

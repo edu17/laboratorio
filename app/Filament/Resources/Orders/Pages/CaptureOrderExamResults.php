@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Orders\Pages;
 
+use App\Actions\Results\ResolveParameterReference;
 use App\Actions\Results\SaveOrderExamResultDraft;
 use App\Filament\Resources\Orders\OrderResource;
 use App\Models\Order;
@@ -142,9 +143,10 @@ class CaptureOrderExamResults extends Page
     private function getSectionComponents(): array
     {
         $orderExam = $this->getOrderExam();
+        $patientSex = $orderExam->order?->patient?->sex;
 
         return collect($orderExam->requestedCatalogSnapshot()['sections'] ?? [])
-            ->map(function (array $section): Section {
+            ->map(function (array $section) use ($patientSex): Section {
                 $components = [];
                 $isMatrix = ($section['structure'] ?? null) === 'parasitological_matrix';
                 $columns = $isMatrix ? array_slice($section['settings']['columns'] ?? [], 1) : [];
@@ -182,7 +184,10 @@ class CaptureOrderExamResults extends Page
 
                     $type = $parameter['type'] ?? $parameter['result_type'] ?? 'text';
                     $field = match ($type) {
-                        'number' => TextInput::make("values.{$code}.value")->numeric(),
+                        'number' => TextInput::make("values.{$code}.value")
+                            ->maxLength(30)
+                            ->regex(ResolveParameterReference::NUMBER_PATTERN)
+                            ->placeholder('Ej. 1.02 o < 2.5'),
                         'select', 'positive_negative' => $this->getChoiceField($code, $parameter),
                         'observation' => Textarea::make("values.{$code}.value")->rows(3),
                         default => TextInput::make("values.{$code}.value"),
@@ -190,7 +195,7 @@ class CaptureOrderExamResults extends Page
 
                     $helperText = collect([
                         $parameter['unit'] ?? null,
-                        $parameter['reference'] ?? $parameter['reference_text'] ?? null,
+                        app(ResolveParameterReference::class)->handle($parameter, $patientSex, null)['text'],
                     ])->filter(fn ($text): bool => filled($text))->implode(' · ');
 
                     $field->label($parameter['name'] ?? $code);

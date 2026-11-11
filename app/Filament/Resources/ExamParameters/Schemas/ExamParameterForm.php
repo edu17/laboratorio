@@ -2,12 +2,15 @@
 
 namespace App\Filament\Resources\ExamParameters\Schemas;
 
+use App\Actions\Results\ResolveParameterReference;
 use App\Models\ExamParameter;
 use App\Models\ExamSection;
+use Closure;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TagsInput;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Utilities\Get;
@@ -55,9 +58,21 @@ class ExamParameterForm
                     'matrix_row' => 'Fila de matriz',
                 ])->required()->live(),
                 TextInput::make('unit')->label('Unidad')->maxLength(60)->placeholder('Pendiente si no está confirmada'),
-                TextInput::make('reference_text')->label('Referencia')->maxLength(255)->placeholder('Pendiente si no está confirmada'),
+                Textarea::make('reference_text')->label('Referencia')->maxLength(2000)->rows(3)
+                    ->placeholder('Pendiente si no está confirmada')->columnSpanFull(),
                 KeyValue::make('reference_config')->label('Configuración estructurada de referencia')
-                    ->keyLabel('Clave')->valueLabel('Valor')->columnSpanFull(),
+                    ->keyLabel('Clave')->valueLabel('Valor')
+                    ->helperText('Claves: min, max (rango para marcar fuera de rango), min_femenino, max_femenino, min_masculino, max_masculino, texto_femenino, texto_masculino (referencia impresa según el sexo del paciente).')
+                    ->rules([fn (): Closure => function (string $attribute, mixed $value, Closure $fail): void {
+                        foreach ((array) $value as $key => $configValue) {
+                            if (! in_array($key, ResolveParameterReference::ALLOWED_CONFIG_KEYS, true)) {
+                                $fail("La clave «{$key}» no está permitida.");
+                            } elseif (preg_match('/\A(min|max)(_|\z)/', (string) $key) === 1 && ! is_numeric($configValue)) {
+                                $fail("El valor de «{$key}» debe ser un número.");
+                            }
+                        }
+                    }])
+                    ->columnSpanFull(),
                 TagsInput::make('options')->label('Opciones permitidas')
                     ->required(fn (Get $get): bool => in_array($get('result_type'), ['select', 'positive_negative'], true))
                     ->visible(fn (Get $get): bool => in_array($get('result_type'), ['select', 'positive_negative'], true))
