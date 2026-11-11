@@ -22,36 +22,26 @@ class OrdersTable
     public static function configure(Table $table): Table
     {
         return $table
-            ->searchPlaceholder(fn (): string => (auth()->user()?->can('View:Result') ?? false) ? 'Buscar orden, paciente, examen o resultado...' : 'Buscar orden, paciente o examen...')
+            ->searchPlaceholder('Buscar orden, paciente, documento, examen o médico...')
             ->searchUsing(function (Builder $query, string $search): void {
                 $terms = preg_split('/\s+/', trim($search), -1, PREG_SPLIT_NO_EMPTY) ?: [];
-                $canSearchResults = auth()->user()?->can('View:Result') ?? false;
 
                 foreach ($terms as $term) {
                     $pattern = '%'.$term.'%';
 
-                    $query->where(function (Builder $query) use ($pattern, $canSearchResults): void {
-                        $query->where('number', 'like', $pattern)
-                            ->orWhere('status', 'like', $pattern)
-                            ->orWhereHas('patient', function (Builder $query) use ($pattern): void {
-                                $query->where('first_names', 'like', $pattern)
-                                    ->orWhere('last_names', 'like', $pattern)
-                                    ->orWhere('identifier', 'like', $pattern)
-                                    ->orWhere('phone', 'like', $pattern);
-                            })
-                            ->orWhereHas('orderExams', function (Builder $query) use ($pattern, $canSearchResults): void {
-                                $query->where('catalog_snapshot->exam->name', 'like', $pattern)
-                                    ->orWhereHas('exam', fn (Builder $query): Builder => $query->where('name', 'like', $pattern))
-                                    ->when($canSearchResults, fn (Builder $query): Builder => $query
-                                        ->orWhereHas('resultValues', function (Builder $query) use ($pattern): void {
-                                            $query->where('parameter_code', 'like', $pattern)
-                                                ->orWhereRaw('CAST(result_values.value AS CHAR) LIKE ?', [$pattern]);
-                                        }));
-                            })
-                            ->when($canSearchResults, fn (Builder $query): Builder => $query
-                                ->orWhereHas('validationEvents', fn (Builder $query): Builder => $query
-                                    ->whereRaw('CAST(order_validation_events.results_snapshot AS CHAR) LIKE ?', [$pattern])));
-                    });
+                    // Solo columnas de texto de tablas pequeñas o indexadas: no se busca dentro de resultados ni de snapshots JSON,
+                    // que crecen con cada orden y no se pueden indexar.
+                    $query->where(fn (Builder $query): Builder => $query
+                        ->where('number', 'like', $pattern)
+                        ->orWhere('referring_doctor', 'like', $pattern)
+                        ->orWhereHas('patient', fn (Builder $query): Builder => $query
+                            ->where('first_names', 'like', $pattern)
+                            ->orWhere('last_names', 'like', $pattern)
+                            ->orWhere('identifier', 'like', $pattern)
+                            ->orWhere('phone', 'like', $pattern))
+                        ->orWhereHas('orderExams.exam', fn (Builder $query): Builder => $query
+                            ->where('name', 'like', $pattern)
+                            ->orWhere('code', 'like', $pattern)));
                 }
             })
             ->columns([

@@ -92,7 +92,7 @@ it('rejects values for parameters outside the stored exam snapshot and keeps inc
     app(SaveOrderExamResultDraft::class)->handle($orderExam, ['values' => []], $administrator);
 
     expect($orderExam->fresh()->status)->toBe(OrderExam::STATUS_IN_PROGRESS)
-        ->and($orderExam->resultValues()->count())->toBe(26);
+        ->and($orderExam->resultValues()->count())->toBe(0);
 });
 
 it('validates select values against catalog options and accepts numeric and observation drafts', function () {
@@ -268,7 +268,7 @@ it('still allows changing the patient after saving an empty draft', function () 
 
     app(SaveOrderExamResultDraft::class)->handle($orderExam, ['values' => []], $administrator);
 
-    expect(ResultValue::where('order_exam_id', $orderExam->id)->count())->toBeGreaterThan(0);
+    expect(ResultValue::where('order_exam_id', $orderExam->id)->count())->toBe(0);
 
     app(UpdateLabOrder::class)->handle($orderExam->order->fresh(), $correctPatient, [$orderExam->exam_id], null, $administrator);
 

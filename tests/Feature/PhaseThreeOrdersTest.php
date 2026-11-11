@@ -10,7 +10,6 @@ use App\Filament\Resources\Orders\Pages\ListOrders;
 use App\Models\Exam;
 use App\Models\Order;
 use App\Models\OrderExam;
-use App\Models\OrderValidationEvent;
 use App\Models\Patient;
 use App\Models\ReferringDoctor;
 use App\Models\User;
@@ -201,7 +200,7 @@ it('allows validators to read orders but blocks changes and redirects guests to 
     $this->get('/admin/ordenes')->assertForbidden();
 });
 
-it('searches orders by number patient exam and captured result values', function (): void {
+it('searches orders by number, patient, document, exam and referring doctor but not by result values', function (): void {
     $this->seed(RolesAndPermissionsSeeder::class);
     $this->seed(HecesCatalogSeeder::class);
     $administrator = phaseThreeUser('Administrador');
@@ -212,9 +211,9 @@ it('searches orders by number patient exam and captured result values', function
         'last_names' => 'Paciente De Prueba',
         'identifier' => 'HISTORIA-205',
     ]);
-    $matchingOrder = app(CreateLabOrder::class)->handle($patient, [$heces->getKey()], $administrator);
-    $matchingOrderExam = $matchingOrder->orderExams->sole();
-    $matchingOrderExam->resultValues()->create([
+    $doctor = ReferringDoctor::factory()->create(['name' => 'Dra. Remitente Buscable']);
+    $matchingOrder = app(CreateLabOrder::class)->handle($patient, [$heces->getKey()], $administrator, referringDoctorId: $doctor->id);
+    $matchingOrder->orderExams->sole()->resultValues()->create([
         'parameter_code' => 'color',
         'value' => ['value' => 'Rosado ficticio'],
         'edited_by' => $administrator->getKey(),
@@ -224,35 +223,21 @@ it('searches orders by number patient exam and captured result values', function
         [$otherExam->getKey()],
         $administrator,
     );
-    $historicalOrder = app(CreateLabOrder::class)->handle(
-        Patient::factory()->create(['first_names' => 'Paciente Con Historial']),
-        [$heces->getKey()],
-        $administrator,
-    );
-    $historicalOrder->update([
-        'status' => Order::STATUS_VALIDATED,
-        'validation_version' => 1,
-    ]);
-    $historicalOrder->validationEvents()->create([
-        'version' => 1,
-        'action' => OrderValidationEvent::ACTION_VALIDATED,
-        'actor_id' => $administrator->getKey(),
-        'results_snapshot' => [
-            'exams' => [[
-                'results' => [[
-                    'parameter_code' => 'organismo',
-                    'value' => ['cells' => ['trofozoito' => 'Trofozoito histórico ficticio']],
-                ]],
-            ]],
-        ],
-        'acted_at' => now(),
-    ]);
     $this->actingAs($administrator);
 
     Livewire::test(ListOrders::class)
-        ->searchTable('Rosado ficticio')
+        ->searchTable('Lucía Prueba')
         ->assertCanSeeTableRecords([$matchingOrder])
         ->assertCanNotSeeTableRecords([$otherOrder]);
+
+    Livewire::test(ListOrders::class)
+        ->searchTable('Remitente Buscable')
+        ->assertCanSeeTableRecords([$matchingOrder])
+        ->assertCanNotSeeTableRecords([$otherOrder]);
+
+    Livewire::test(ListOrders::class)
+        ->searchTable('Rosado ficticio')
+        ->assertCanNotSeeTableRecords([$matchingOrder, $otherOrder]);
 
     Livewire::test(ListOrders::class)
         ->searchTable('HECES')
@@ -268,11 +253,6 @@ it('searches orders by number patient exam and captured result values', function
         ->searchTable($otherOrder->number)
         ->assertCanSeeTableRecords([$otherOrder])
         ->assertCanNotSeeTableRecords([$matchingOrder]);
-
-    Livewire::test(ListOrders::class)
-        ->searchTable('Trofozoito')
-        ->assertCanSeeTableRecords([$historicalOrder])
-        ->assertCanNotSeeTableRecords([$matchingOrder, $otherOrder]);
 });
 
 it('hides captured results from users who can view orders but not results', function (): void {

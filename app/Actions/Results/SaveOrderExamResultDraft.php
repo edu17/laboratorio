@@ -165,22 +165,21 @@ class SaveOrderExamResultDraft
 
             Gate::forUser($actor)->authorize('captureResults', $lockedOrderExam);
 
+            $storedResults = $lockedOrderExam->resultValues()->lockForUpdate()->get()->keyBy('parameter_code');
+
             $normalizedValues = $this->calculateDerivedResults->handle(
                 $normalizedValues,
-                $lockedOrderExam->resultValues()
-                    ->whereIn('parameter_code', array_keys(CalculateDerivedResults::FORMULAS))
-                    ->get()
-                    ->mapWithKeys(fn ($result): array => [$result->parameter_code => $result->value])
-                    ->all(),
+                $storedResults->map(fn ($result): mixed => $result->value)->all(),
             );
 
             foreach ($normalizedValues as $parameterCode => $value) {
-                $result = $lockedOrderExam->resultValues()
-                    ->where('parameter_code', $parameterCode)
-                    ->lockForUpdate()
-                    ->first();
+                $result = $storedResults->get($parameterCode);
 
                 if (! $result) {
+                    if ($this->isEmptyResult($value)) {
+                        continue;
+                    }
+
                     $lockedOrderExam->resultValues()->create([
                         'parameter_code' => $parameterCode,
                         'value' => $value,
@@ -293,6 +292,17 @@ class SaveOrderExamResultDraft
      * Compara dos resultados sin depender del orden de las claves: MySQL reordena las claves
      * de las columnas JSON al guardarlas, y una diferencia de orden no es un cambio de resultado.
      */
+    /**
+     * Un campo que nunca tuvo valor no necesita fila: así un guardado parcial no llena la tabla de filas vacías.
+     *
+     * @param  array<string, mixed>  $value
+     */
+    private function isEmptyResult(array $value): bool
+    {
+        return blank($value['value'] ?? null)
+            && ! collect($value['cells'] ?? [])->contains(fn (mixed $cell): bool => filled($cell));
+    }
+
     private function sameResult(mixed $stored, mixed $submitted): bool
     {
         return $this->withSortedKeys($stored) === $this->withSortedKeys($submitted);

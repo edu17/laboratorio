@@ -38,7 +38,7 @@ class OrderInfolist
                 TextEntry::make('notes')->label('Observaciones administrativas')->placeholder('Sin observaciones'),
                 TextEntry::make('orderExams')
                     ->label(fn (): string => self::canViewResults() ? 'Exámenes y resultados capturados' : 'Exámenes solicitados')
-                    ->state(fn (Order $record): array => $record->orderExams
+                    ->state(fn (Order $record): array => $record->loadMissing(['orderExams.resultValues', 'orderExams.exam'])->orderExams
                         ->map(function ($orderExam): string {
                             $examName = $orderExam->catalog_snapshot['exam']['name'] ?? $orderExam->exam->name;
 
@@ -104,7 +104,7 @@ class OrderInfolist
                     ->listWithLineBreaks(),
                 TextEntry::make('validationEvents')
                     ->label('Historial de validación')
-                    ->state(fn (Order $record): array => $record->validationEvents
+                    ->state(fn (Order $record): array => $record->loadMissing('validationEvents.actor')->validationEvents
                         ->map(fn (OrderValidationEvent $event): string => match ($event->action) {
                             OrderValidationEvent::ACTION_VALIDATED => 'Validada · versión '.$event->version.' · '.$event->actor->name.' · '.$event->acted_at->format('d/m/Y H:i'),
                             OrderValidationEvent::ACTION_REOPENED => 'Reabierta · versión '.$event->version.' · '.$event->actor->name.' · '.$event->acted_at->format('d/m/Y H:i')

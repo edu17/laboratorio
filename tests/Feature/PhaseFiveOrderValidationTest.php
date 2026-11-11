@@ -175,9 +175,7 @@ it('allows an explicitly completed empty parasitological matrix and preserves it
 
     expect($examSnapshot['section_statuses']['parasitologico'])
         ->toBe(OrderExam::SECTION_STATUS_COMPLETED_WITHOUT_FINDINGS)
-        ->and($matrixResults)->toHaveCount(count($matrixCodes))
-        ->and($matrixResults->every(fn (array $result): bool => collect($result['value']['cells'] ?? [])->every(fn ($cell): bool => blank($cell))))
-        ->toBeTrue();
+        ->and($matrixResults)->toBeEmpty();
 });
 
 it('allows only the validator to reopen, requires a reason, and preserves prior validation versions', function () {

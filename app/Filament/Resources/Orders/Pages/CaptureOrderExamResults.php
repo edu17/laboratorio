@@ -37,6 +37,8 @@ class CaptureOrderExamResults extends Page
     /** @var array<string, mixed>|null */
     public ?array $data = [];
 
+    private ?OrderExam $orderExamRecord = null;
+
     public function mount(int|string $record, int|string $orderExam): void
     {
         $order = Order::query()->findOrFail($record);
@@ -53,8 +55,9 @@ class CaptureOrderExamResults extends Page
 
     public function hydrate(): void
     {
-        Gate::authorize('view', Order::query()->findOrFail($this->orderId));
-        Gate::authorize('captureResults', $this->getOrderExam());
+        $orderExam = $this->getOrderExam();
+        Gate::authorize('view', $orderExam->order);
+        Gate::authorize('captureResults', $orderExam);
     }
 
     public function form(Schema $schema): Schema
@@ -69,6 +72,7 @@ class CaptureOrderExamResults extends Page
         $state = $this->form->getState();
 
         $savedOrderExam = $saveDraft->handle($this->getOrderExam(), $state, auth()->user());
+        $this->orderExamRecord = $savedOrderExam->load('order.patient');
         $this->form->fill($this->getFormValues($savedOrderExam));
 
         Notification::make()
@@ -78,9 +82,12 @@ class CaptureOrderExamResults extends Page
             ->send();
     }
 
+    /**
+     * Se carga una vez por petición: lo usan la autorización, el formulario, la vista y el contador.
+     */
     public function getOrderExam(): OrderExam
     {
-        return OrderExam::query()
+        return $this->orderExamRecord ??= OrderExam::query()
             ->where('order_id', $this->orderId)
             ->with(['order.patient', 'resultValues'])
             ->findOrFail($this->orderExamId);
@@ -88,49 +95,7 @@ class CaptureOrderExamResults extends Page
 
     public function getMissingResultCount(): int
     {
-        $orderExam = $this->getOrderExam();
-        $storedValues = $orderExam->resultValues->keyBy('parameter_code');
-        $sectionStatuses = $orderExam->section_statuses ?? [];
-        $missingCount = 0;
-
-        foreach ($orderExam->requestedCatalogSnapshot()['sections'] ?? [] as $section) {
-            $isMatrix = ($section['structure'] ?? null) === 'parasitological_matrix';
-
-            if ($isMatrix) {
-                $sectionCode = $section['code'] ?? null;
-                $hasFindings = collect($section['parameters'] ?? [])
-                    ->flatMap(fn (array $parameter): array => array_values($storedValues->get($parameter['code'] ?? '')?->value['cells'] ?? []))
-                    ->contains(fn (mixed $cell): bool => filled($cell));
-                $status = is_string($sectionCode) ? ($sectionStatuses[$sectionCode] ?? OrderExam::SECTION_STATUS_PENDING) : OrderExam::SECTION_STATUS_PENDING;
-                $isComplete = match ($status) {
-                    OrderExam::SECTION_STATUS_COMPLETED_WITH_FINDINGS => $hasFindings,
-                    OrderExam::SECTION_STATUS_COMPLETED_WITHOUT_FINDINGS => ! $hasFindings,
-                    default => false,
-                };
-
-                if (! $isComplete) {
-                    $missingCount++;
-                }
-
-                continue;
-            }
-
-            foreach ($section['parameters'] ?? [] as $parameter) {
-                $code = $parameter['code'] ?? null;
-
-                if (! is_string($code)) {
-                    continue;
-                }
-
-                $stored = $storedValues->get($code)?->value ?? [];
-
-                if (blank($stored['value'] ?? null)) {
-                    $missingCount++;
-                }
-            }
-        }
-
-        return $missingCount;
+        return count($this->getOrderExam()->missingResults());
     }
 
     public function getOrderViewUrl(): string

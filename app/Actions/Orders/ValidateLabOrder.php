@@ -41,60 +41,12 @@ class ValidateLabOrder
             $patient = $lockedOrder->patient()->lockForUpdate()->firstOrFail();
 
             foreach ($orderExams as $orderExam) {
-                $storedValues = $orderExam->resultValues->keyBy('parameter_code');
-                $parameterCount = 0;
                 $examName = $orderExam->catalog_snapshot['exam']['name'] ?? $orderExam->exam->name;
                 $requestedSnapshot = $orderExam->requestedCatalogSnapshot();
                 $requestedCodes = array_flip($orderExam->requestedParameterCodes());
 
-                foreach ($requestedSnapshot['sections'] ?? [] as $section) {
-                    $isMatrix = ($section['structure'] ?? null) === 'parasitological_matrix';
-
-                    if ($isMatrix) {
-                        $matrixParameters = $section['parameters'] ?? [];
-                        $parameterCount += count($matrixParameters);
-                        $sectionCode = $section['code'] ?? null;
-                        $sectionStatus = is_string($sectionCode)
-                            ? ($orderExam->section_statuses[$sectionCode] ?? OrderExam::SECTION_STATUS_PENDING)
-                            : OrderExam::SECTION_STATUS_PENDING;
-                        $hasFindings = collect($matrixParameters)
-                            ->flatMap(fn (array $parameter): array => array_values(
-                                $storedValues->get($parameter['code'] ?? '')?->value['cells'] ?? [],
-                            ))
-                            ->contains(fn (mixed $cell): bool => filled($cell));
-                        $isComplete = match ($sectionStatus) {
-                            OrderExam::SECTION_STATUS_COMPLETED_WITH_FINDINGS => $hasFindings,
-                            OrderExam::SECTION_STATUS_COMPLETED_WITHOUT_FINDINGS => ! $hasFindings,
-                            default => false,
-                        };
-
-                        if (! $isComplete) {
-                            $missingResults[] = $examName.' / '.($section['name'] ?? 'Matriz parasitológica').' / Selecciona un estado y confirma si hay hallazgos.';
-                        }
-
-                        continue;
-                    }
-
-                    foreach ($section['parameters'] ?? [] as $parameter) {
-                        $parameterCode = $parameter['code'] ?? null;
-
-                        if (! is_string($parameterCode) || $parameterCode === '') {
-                            continue;
-                        }
-
-                        $parameterCount++;
-                        $value = $storedValues->get($parameterCode)?->value ?? [];
-                        $value = is_array($value) ? $value : [];
-                        $isComplete = filled($value['value'] ?? null);
-
-                        if (! $isComplete) {
-                            $missingResults[] = $examName.' / '.($section['name'] ?? 'Sección').' / '.($parameter['name'] ?? $parameterCode);
-                        }
-                    }
-                }
-
-                if ($parameterCount === 0) {
-                    $missingResults[] = $examName.' / Sin parámetros configurados';
+                foreach ($orderExam->missingResults() as $missing) {
+                    $missingResults[] = $examName.' / '.$missing;
                 }
 
                 $examSnapshots[] = [

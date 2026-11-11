@@ -115,6 +115,54 @@ class OrderExam extends Model
     }
 
     /**
+     * Lo que falta para dar por completo el examen, en el orden del catálogo: cada parámetro solicitado
+     * sin valor ("Sección / Parámetro") y cada matriz sin estado coherente con sus hallazgos.
+     * Es la única definición de "completo": la usan la validación y el contador de la captura.
+     *
+     * @return list<string>
+     */
+    public function missingResults(): array
+    {
+        $storedValues = $this->resultValues->keyBy('parameter_code');
+        $sections = $this->requestedCatalogSnapshot()['sections'] ?? [];
+        $missing = [];
+
+        foreach ($sections as $section) {
+            $sectionName = $section['name'] ?? 'Sección';
+
+            if (($section['structure'] ?? null) === 'parasitological_matrix') {
+                $status = $this->section_statuses[$section['code'] ?? ''] ?? self::SECTION_STATUS_PENDING;
+                $hasFindings = collect($section['parameters'] ?? [])
+                    ->flatMap(fn (array $parameter): array => array_values($storedValues->get($parameter['code'] ?? '')?->value['cells'] ?? []))
+                    ->contains(fn (mixed $cell): bool => filled($cell));
+                $isComplete = match ($status) {
+                    self::SECTION_STATUS_COMPLETED_WITH_FINDINGS => $hasFindings,
+                    self::SECTION_STATUS_COMPLETED_WITHOUT_FINDINGS => ! $hasFindings,
+                    default => false,
+                };
+
+                if (! $isComplete) {
+                    $missing[] = $sectionName.' / Selecciona un estado y confirma si hay hallazgos.';
+                }
+
+                continue;
+            }
+
+            foreach ($section['parameters'] ?? [] as $parameter) {
+                if (! filled($storedValues->get($parameter['code'] ?? '')?->value['value'] ?? null)) {
+                    $missing[] = $sectionName.' / '.($parameter['name'] ?? $parameter['code']);
+                }
+            }
+        }
+
+        if (collect($sections)->sum(fn (array $section): int => count($section['parameters'] ?? [])) === 0) {
+            $missing[] = 'Sin parámetros configurados';
+        }
+
+        return $missing;
+    }
+
+    /**
      * @return list<string>
      */
     public function requestedParameterCodes(): array

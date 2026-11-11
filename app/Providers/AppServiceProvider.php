@@ -10,7 +10,6 @@ use App\Models\ExamSection;
 use App\Models\Order;
 use App\Models\OrderExam;
 use App\Models\Patient;
-use App\Models\ResultValue;
 use App\Models\User;
 use App\Observers\AuditObserver;
 use App\Policies\OrderExamPolicy;
@@ -52,7 +51,6 @@ class AppServiceProvider extends ServiceProvider
         ExamCatalogVersion::observe(AuditObserver::class);
         Order::observe(AuditObserver::class);
         OrderExam::observe(AuditObserver::class);
-        ResultValue::observe(AuditObserver::class);
         User::observe(AuditObserver::class);
         Role::observe(AuditObserver::class);
         Gate::policy(OrderExam::class, OrderExamPolicy::class);
