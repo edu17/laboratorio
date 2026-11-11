@@ -2,6 +2,7 @@
 
 return [
     'exam_name' => 'Examen de heces',
+    'category' => 'heces_orina',
     'source' => 'Hoja HECES del archivo 2025.xlsx',
     'clinical_validation_status' => 'pending',
     'sections' => [

@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Exams\Schemas;
 
 use App\Models\Exam;
 use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -17,6 +18,11 @@ class ExamForm
             ->components([
                 TextInput::make('code')->label('Código')->required()->alphaDash()->maxLength(60)->unique(ignoreRecord: true),
                 TextInput::make('name')->label('Nombre del examen')->required()->maxLength(180),
+                Select::make('category')
+                    ->label('Grupo')
+                    ->options(Exam::CATEGORIES)
+                    ->placeholder('Otros exámenes')
+                    ->helperText('Agrupa el examen al marcarlo en una orden.'),
                 Textarea::make('description')->label('Descripción')->columnSpanFull(),
                 TextInput::make('source')->label('Fuente de estructura')->maxLength(180),
                 Placeholder::make('clinical_validation_status')

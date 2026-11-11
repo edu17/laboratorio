@@ -10,6 +10,7 @@ $paired = ['report_layout' => 'paired'];
 
 return [
     'source' => '2025.xlsx',
+    'category' => 'heces_orina',
     'exams' => [
         [
             'code' => 'ORINA',

@@ -10,12 +10,15 @@ use App\Models\Order;
 use App\Models\OrderExam;
 use App\Models\Patient;
 use App\Models\ReferringDoctor;
+use Closure;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Group;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
@@ -51,30 +54,14 @@ class OrderForm
 
                         return Patient::create($data)->getKey();
                     }),
-                CheckboxList::make('exam_ids')
-                    ->label('Exámenes solicitados')
-                    ->options(fn (?Order $record): array => Exam::query()
-                        ->where('is_active', true)
-                        ->orWhereIn('id', $record?->orderExams()->pluck('exam_id')->all() ?? [])
-                        ->orderBy('sort_order')
-                        ->orderBy('name')
-                        ->pluck('name', 'id')
-                        ->all())
-                    ->default([])
-                    ->searchable()
-                    ->bulkToggleable()
-                    ->columns(2)
-                    ->required()
-                    ->live()
-                    ->afterStateUpdated(function (?array $state, ?array $old, Set $set, ?Order $record): void {
-                        foreach (array_diff($state ?? [], $old ?? []) as $examId) {
-                            $options = self::requestableParameterOptions((int) $examId, $record);
-
-                            if ($options !== []) {
-                                $set("requested_parameter_codes.{$examId}", array_keys($options));
-                            }
-                        }
+                Hidden::make('exam_ids')->default([])->required(),
+                Section::make('Exámenes solicitados')
+                    ->description(fn (Get $get): string => match ($count = count($get('exam_ids') ?? [])) {
+                        0 => 'Marca los exámenes de la orden; están agrupados como en el libro del laboratorio.',
+                        1 => '1 examen seleccionado',
+                        default => $count.' exámenes seleccionados',
                     })
+                    ->schema(fn (?Order $record): array => self::examSelectionFields($record))
                     ->columnSpanFull(),
                 Group::make(fn (Get $get, ?Order $record): array => self::requestedParameterFields($get('exam_ids') ?? [], $record))
                     ->columnSpanFull(),
@@ -103,8 +90,71 @@ class OrderForm
                     }),
                 Textarea::make('notes')->label('Observaciones administrativas')->maxLength(5000)->columnSpanFull(),
                 DatePicker::make('ordered_at')->label('Fecha de orden')->default(today())->disabled()->dehydrated(false),
-                TextInput::make('status')->label('Estado')->default('pendiente')->disabled()->dehydrated(false),
+                TextInput::make('status')
+                    ->label('Estado')
+                    ->default(Order::STATUS_PENDING)
+                    ->formatStateUsing(fn (?string $state): string => Order::STATUS_LABELS[$state] ?? (string) $state)
+                    ->disabled()
+                    ->dehydrated(false),
             ]);
+    }
+
+    /**
+     * Una lista de exámenes por grupo. La selección real vive en exam_ids, que es lo que se guarda: las listas
+     * solo la muestran repartida y la reconstruyen al cambiar.
+     *
+     * @return list<CheckboxList>
+     */
+    private static function examSelectionFields(?Order $record): array
+    {
+        $exams = Exam::query()
+            ->where('is_active', true)
+            ->orWhereIn('id', $record?->orderExams()->pluck('exam_id')->all() ?? [])
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'name', 'category']);
+        $categoryPositions = array_flip(array_keys(Exam::CATEGORIES));
+        $groups = $exams
+            ->groupBy(fn (Exam $exam): string => isset($categoryPositions[$exam->category]) ? $exam->category : 'otros')
+            ->sortBy(fn ($exams, string $category): int => $categoryPositions[$category] ?? PHP_INT_MAX);
+        $firstCategory = $groups->keys()->first();
+
+        return $groups
+            ->map(fn ($exams, string $category): CheckboxList => CheckboxList::make("exam_selection.{$category}")
+                ->label(Exam::CATEGORIES[$category] ?? 'Otros exámenes')
+                ->options($exams->pluck('name', 'id')->all())
+                ->searchable($exams->count() > 10)
+                ->columns(['default' => 1, 'md' => 2, 'xl' => 3])
+                ->dehydrated(false)
+                ->rules($category === $firstCategory ? [fn (Get $get): Closure => function (string $attribute, mixed $value, Closure $fail) use ($get): void {
+                    if (blank($get('exam_ids'))) {
+                        $fail('Marca al menos un examen.');
+                    }
+                }] : [])
+                ->live()
+                ->afterStateHydrated(fn (CheckboxList $component, Get $get) => $component->state(array_values(array_intersect(
+                    array_map('strval', $exams->pluck('id')->all()),
+                    array_map('strval', $get('exam_ids') ?? []),
+                ))))
+                ->afterStateUpdated(function (Get $get, Set $set, ?Order $record): void {
+                    $old = $get('exam_ids') ?? [];
+                    $selected = array_values(array_unique(array_merge(...array_values(array_map(
+                        fn (mixed $ids): array => is_array($ids) ? $ids : [],
+                        $get('exam_selection') ?? [],
+                    )))));
+
+                    $set('exam_ids', $selected);
+
+                    foreach (array_diff(array_map('strval', $selected), array_map('strval', $old)) as $examId) {
+                        $options = self::requestableParameterOptions((int) $examId, $record);
+
+                        if ($options !== []) {
+                            $set("requested_parameter_codes.{$examId}", array_keys($options));
+                        }
+                    }
+                }))
+            ->values()
+            ->all();
     }
 
     /**

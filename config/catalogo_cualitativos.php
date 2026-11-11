@@ -9,6 +9,7 @@ $negativoPositivo = ['Negativo', 'Positivo'];
 
 return [
     'source' => '2025.xlsx',
+    'category' => 'cualitativas',
     'exams' => [
         [
             'code' => 'VIH',

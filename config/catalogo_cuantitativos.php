@@ -33,6 +33,7 @@ $antibodyIndex = 'Negativo: Menor de 0.9 UI/mL. Dudoso: 0.9 a 1.1 UI/mL. Positiv
 
 return [
     'source' => '2025.xlsx',
+    'category' => 'cuantitativas',
     'exams' => [
         [
             'code' => 'QUIMICA',

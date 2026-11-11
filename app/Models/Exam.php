@@ -9,11 +9,18 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
-#[Fillable(['code', 'name', 'description', 'source', 'clinical_validation_status', 'is_active', 'allows_partial_request', 'sort_order'])]
+#[Fillable(['code', 'name', 'category', 'description', 'source', 'clinical_validation_status', 'is_active', 'allows_partial_request', 'sort_order'])]
 class Exam extends Model
 {
     /** @use HasFactory<ExamFactory> */
     use HasFactory;
+
+    /** @var array<string, string> Grupos de la orden, como las hojas del libro del laboratorio. */
+    public const CATEGORIES = [
+        'heces_orina' => 'Heces y orina',
+        'cualitativas' => 'Pruebas cualitativas',
+        'cuantitativas' => 'Pruebas cuantitativas',
+    ];
 
     public function sections(): HasMany
     {
