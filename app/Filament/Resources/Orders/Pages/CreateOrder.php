@@ -20,6 +20,7 @@ class CreateOrder extends CreateRecord
             auth()->user(),
             $data['notes'] ?? null,
             $data['referring_doctor'] ?? null,
+            $data['requested_parameter_codes'] ?? [],
         );
     }
 }

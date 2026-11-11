@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
-#[Fillable(['code', 'name', 'description', 'source', 'clinical_validation_status', 'is_active', 'sort_order'])]
+#[Fillable(['code', 'name', 'description', 'source', 'clinical_validation_status', 'is_active', 'allows_partial_request', 'sort_order'])]
 class Exam extends Model
 {
     /** @use HasFactory<ExamFactory> */
@@ -34,6 +34,7 @@ class Exam extends Model
     {
         return [
             'is_active' => 'boolean',
+            'allows_partial_request' => 'boolean',
         ];
     }
 }

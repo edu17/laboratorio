@@ -2,7 +2,6 @@
 
 namespace App\Actions\Orders;
 
-use App\Actions\Exams\BuildExamResultFormDefinition;
 use App\Models\Exam;
 use App\Models\LabProfile;
 use App\Models\Order;
@@ -17,27 +16,34 @@ use Illuminate\Validation\ValidationException;
 
 class CreateLabOrder
 {
-    public function __construct(private BuildExamResultFormDefinition $formDefinition) {}
+    public function __construct(
+        private BuildOrderExamSnapshot $buildSnapshot,
+        private ResolveRequestedParameterCodes $resolveRequestedCodes,
+    ) {}
 
     /**
      * @param  list<int|string>  $examIds
+     * @param  array<int|string, list<string>>  $requestedParameterCodes  Análisis solicitados por examen; si falta un examen, se pide completo.
      */
-    public function handle(Patient $patient, array $examIds, User $actor, ?string $notes = null, ?string $referringDoctor = null): Order
+    public function handle(Patient $patient, array $examIds, User $actor, ?string $notes = null, ?string $referringDoctor = null, array $requestedParameterCodes = []): Order
     {
         Gate::forUser($actor)->authorize('create', Order::class);
 
         $validated = Validator::make(
-            ['exam_ids' => $examIds, 'referring_doctor' => $referringDoctor],
+            ['exam_ids' => $examIds, 'referring_doctor' => $referringDoctor, 'requested_parameter_codes' => $requestedParameterCodes],
             [
                 'exam_ids' => ['required', 'array', 'min:1'],
                 'referring_doctor' => ['nullable', 'string', 'max:180'],
                 'exam_ids.*' => ['required', 'integer', 'distinct', 'exists:exams,id'],
+                'requested_parameter_codes' => ['array'],
+                'requested_parameter_codes.*' => ['array'],
+                'requested_parameter_codes.*.*' => ['string', 'max:100'],
             ],
         )->validate();
 
         $examIds = array_map('intval', $validated['exam_ids']);
 
-        return DB::transaction(function () use ($patient, $examIds, $actor, $notes, $referringDoctor): Order {
+        return DB::transaction(function () use ($patient, $examIds, $actor, $notes, $referringDoctor, $requestedParameterCodes): Order {
             $patient = Patient::query()->findOrFail($patient->getKey());
             $exams = Exam::query()
                 ->whereIn('id', $examIds)
@@ -80,15 +86,18 @@ class CreateLabOrder
             ]);
 
             foreach ($exams as $exam) {
-                $catalogVersion = $exam->latestCatalogVersion;
-                $snapshot = $catalogVersion?->snapshot
-                    ?? $this->formDefinition->handle($exam);
+                $snapshot = $this->buildSnapshot->handle($exam);
 
                 OrderExam::create([
                     'order_id' => $order->getKey(),
                     'exam_id' => $exam->getKey(),
-                    'exam_catalog_version_id' => $catalogVersion?->getKey(),
+                    'exam_catalog_version_id' => $exam->latestCatalogVersion?->getKey(),
                     'catalog_snapshot' => $snapshot,
+                    'requested_parameter_codes' => $this->resolveRequestedCodes->handle(
+                        $exam,
+                        $snapshot,
+                        $requestedParameterCodes[$exam->getKey()] ?? null,
+                    ),
                     'status' => OrderExam::STATUS_PENDING,
                 ]);
             }

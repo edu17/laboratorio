@@ -36,7 +36,7 @@ class OrderInfolist
                             $resultValues = $orderExam->resultValues->keyBy('parameter_code');
                             $results = [];
 
-                            foreach ($orderExam->catalog_snapshot['sections'] ?? [] as $section) {
+                            foreach ($orderExam->requestedCatalogSnapshot()['sections'] ?? [] as $section) {
                                 if (($section['structure'] ?? null) === 'parasitological_matrix') {
                                     $sectionCode = $section['code'] ?? null;
                                     $matrixStatus = is_string($sectionCode)

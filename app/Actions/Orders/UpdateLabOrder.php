@@ -2,7 +2,6 @@
 
 namespace App\Actions\Orders;
 
-use App\Actions\Exams\BuildExamResultFormDefinition;
 use App\Models\Exam;
 use App\Models\Order;
 use App\Models\OrderExam;
@@ -15,27 +14,34 @@ use Illuminate\Validation\ValidationException;
 
 class UpdateLabOrder
 {
-    public function __construct(private BuildExamResultFormDefinition $formDefinition) {}
+    public function __construct(
+        private BuildOrderExamSnapshot $buildSnapshot,
+        private ResolveRequestedParameterCodes $resolveRequestedCodes,
+    ) {}
 
     /**
      * @param  list<int|string>  $examIds
+     * @param  array<int|string, list<string>>  $requestedParameterCodes  Análisis solicitados por examen; si falta un examen, conserva lo que ya tenía.
      */
-    public function handle(Order $order, Patient $patient, array $examIds, ?string $notes, User $actor, ?string $referringDoctor = null): Order
+    public function handle(Order $order, Patient $patient, array $examIds, ?string $notes, User $actor, ?string $referringDoctor = null, array $requestedParameterCodes = []): Order
     {
         Gate::forUser($actor)->authorize('update', $order);
 
         $validated = Validator::make(
-            ['exam_ids' => $examIds, 'referring_doctor' => $referringDoctor],
+            ['exam_ids' => $examIds, 'referring_doctor' => $referringDoctor, 'requested_parameter_codes' => $requestedParameterCodes],
             [
                 'exam_ids' => ['required', 'array', 'min:1'],
                 'referring_doctor' => ['nullable', 'string', 'max:180'],
                 'exam_ids.*' => ['required', 'integer', 'distinct', 'exists:exams,id'],
+                'requested_parameter_codes' => ['array'],
+                'requested_parameter_codes.*' => ['array'],
+                'requested_parameter_codes.*.*' => ['string', 'max:100'],
             ],
         )->validate();
 
         $examIds = array_map('intval', $validated['exam_ids']);
 
-        return DB::transaction(function () use ($order, $patient, $examIds, $notes, $referringDoctor): Order {
+        return DB::transaction(function () use ($order, $patient, $examIds, $notes, $referringDoctor, $requestedParameterCodes): Order {
             $order = Order::query()->lockForUpdate()->findOrFail($order->getKey());
 
             if (in_array($order->status, [Order::STATUS_CANCELED, Order::STATUS_VALIDATED, Order::STATUS_PUBLISHED], true)) {
@@ -84,6 +90,10 @@ class UpdateLabOrder
                 $existingOrderExam = $existingOrderExams->get($exam->getKey());
 
                 if ($existingOrderExam) {
+                    if (array_key_exists($exam->getKey(), $requestedParameterCodes)) {
+                        $this->updateRequestedParameters($existingOrderExam, $exam, $requestedParameterCodes[$exam->getKey()]);
+                    }
+
                     if ($existingOrderExam->status === OrderExam::STATUS_WITHDRAWN) {
                         $existingOrderExam->update([
                             'status' => $existingOrderExam->resultValues()->exists()
@@ -95,14 +105,18 @@ class UpdateLabOrder
                     continue;
                 }
 
-                $catalogVersion = $exam->latestCatalogVersion;
-                $snapshot = $catalogVersion?->snapshot ?? $this->formDefinition->handle($exam);
+                $snapshot = $this->buildSnapshot->handle($exam);
 
                 OrderExam::create([
                     'order_id' => $order->getKey(),
                     'exam_id' => $exam->getKey(),
-                    'exam_catalog_version_id' => $catalogVersion?->getKey(),
+                    'exam_catalog_version_id' => $exam->latestCatalogVersion?->getKey(),
                     'catalog_snapshot' => $snapshot,
+                    'requested_parameter_codes' => $this->resolveRequestedCodes->handle(
+                        $exam,
+                        $snapshot,
+                        $requestedParameterCodes[$exam->getKey()] ?? null,
+                    ),
                     'status' => OrderExam::STATUS_PENDING,
                 ]);
             }
@@ -115,5 +129,38 @@ class UpdateLabOrder
 
             return $order->fresh(['patient', 'creator', 'orderExams.exam']);
         });
+    }
+
+    /**
+     * Cambia los análisis solicitados sin permitir quitar uno que ya tiene resultado capturado.
+     *
+     * @param  list<string>  $codes
+     */
+    private function updateRequestedParameters(OrderExam $orderExam, Exam $exam, array $codes): void
+    {
+        $requestedCodes = $this->resolveRequestedCodes->handle($exam, $orderExam->catalog_snapshot ?? [], $codes);
+        $previousCodes = $orderExam->requestedParameterCodes();
+
+        $orderExam->requested_parameter_codes = $requestedCodes;
+        $removedCodes = array_diff($previousCodes, $orderExam->requestedParameterCodes());
+
+        $removedWithResults = $orderExam->resultValues()
+            ->whereIn('parameter_code', $removedCodes)
+            ->get()
+            ->filter(fn ($result): bool => filled($result->value['value'] ?? null))
+            ->pluck('parameter_code');
+
+        if ($removedWithResults->isNotEmpty()) {
+            $names = OrderExam::requestableParameters($orderExam->catalog_snapshot ?? []);
+
+            throw ValidationException::withMessages([
+                "requested_parameter_codes.{$exam->getKey()}" => 'No se puede quitar un análisis que ya tiene resultado capturado: '
+                    .$removedWithResults->map(fn (string $code): string => $names[$code] ?? $code)->implode(', ').'.',
+            ]);
+        }
+
+        if ($orderExam->isDirty('requested_parameter_codes')) {
+            $orderExam->save();
+        }
     }
 }

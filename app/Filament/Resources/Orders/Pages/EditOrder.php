@@ -23,12 +23,20 @@ class EditOrder extends EditRecord
 
     protected function mutateFormDataBeforeFill(array $data): array
     {
-        $data['exam_ids'] = $this->getRecord()
+        $activeOrderExams = $this->getRecord()
             ->orderExams()
             ->whereNotIn('status', [OrderExam::STATUS_CANCELED, OrderExam::STATUS_WITHDRAWN])
             ->orderBy('exam_id')
-            ->pluck('exam_id')
-            ->map(fn ($id): int => (int) $id)
+            ->get();
+
+        $data['exam_ids'] = $activeOrderExams
+            ->map(fn (OrderExam $orderExam): int => (int) $orderExam->exam_id)
+            ->all();
+        $data['requested_parameter_codes'] = $activeOrderExams
+            ->mapWithKeys(fn (OrderExam $orderExam): array => [
+                (int) $orderExam->exam_id => $orderExam->requested_parameter_codes
+                    ?? array_keys(OrderExam::requestableParameters($orderExam->catalog_snapshot ?? [])),
+            ])
             ->all();
 
         return $data;
@@ -43,6 +51,7 @@ class EditOrder extends EditRecord
             $data['notes'] ?? null,
             auth()->user(),
             $data['referring_doctor'] ?? null,
+            $data['requested_parameter_codes'] ?? [],
         );
     }
 }

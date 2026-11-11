@@ -25,6 +25,10 @@ class ExamForm
                         ? 'Validado clínicamente'
                         : 'Pendiente de validación clínica'),
                 Toggle::make('is_active')->label('Activo')->default(true),
+                Toggle::make('allows_partial_request')
+                    ->label('Se puede pedir de forma parcial')
+                    ->helperText('Permite marcar en la orden solo los análisis solicitados. Las matrices se informan siempre completas.')
+                    ->default(false),
                 TextInput::make('sort_order')->label('Orden')->numeric()->minValue(0)->default(0)->required(),
             ]);
     }

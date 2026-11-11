@@ -91,7 +91,7 @@ class CaptureOrderExamResults extends Page
         $sectionStatuses = $orderExam->section_statuses ?? [];
         $missingCount = 0;
 
-        foreach ($orderExam->catalog_snapshot['sections'] ?? [] as $section) {
+        foreach ($orderExam->requestedCatalogSnapshot()['sections'] ?? [] as $section) {
             $isMatrix = ($section['structure'] ?? null) === 'parasitological_matrix';
 
             if ($isMatrix) {
@@ -143,7 +143,7 @@ class CaptureOrderExamResults extends Page
     {
         $orderExam = $this->getOrderExam();
 
-        return collect($orderExam->catalog_snapshot['sections'] ?? [])
+        return collect($orderExam->requestedCatalogSnapshot()['sections'] ?? [])
             ->map(function (array $section): Section {
                 $components = [];
                 $isMatrix = ($section['structure'] ?? null) === 'parasitological_matrix';
@@ -238,7 +238,7 @@ class CaptureOrderExamResults extends Page
     {
         $sectionStatuses = $orderExam->section_statuses ?? [];
 
-        foreach ($orderExam->catalog_snapshot['sections'] ?? [] as $section) {
+        foreach ($orderExam->requestedCatalogSnapshot()['sections'] ?? [] as $section) {
             if (($section['structure'] ?? null) !== 'parasitological_matrix' || ! is_string($section['code'] ?? null)) {
                 continue;
             }

@@ -30,7 +30,7 @@ class SaveOrderExamResultDraft
             throw ValidationException::withMessages(['values' => 'Los resultados enviados tienen un formato inválido.']);
         }
 
-        $snapshot = $orderExam->catalog_snapshot ?? [];
+        $snapshot = $orderExam->requestedCatalogSnapshot();
         $definitions = $this->getParameterDefinitions($snapshot);
         $allowedCodes = array_column($definitions, 'code');
         $unknownCodes = array_diff(array_keys($values), $allowedCodes);

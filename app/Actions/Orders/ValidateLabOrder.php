@@ -44,8 +44,10 @@ class ValidateLabOrder
                 $storedValues = $orderExam->resultValues->keyBy('parameter_code');
                 $parameterCount = 0;
                 $examName = $orderExam->catalog_snapshot['exam']['name'] ?? $orderExam->exam->name;
+                $requestedSnapshot = $orderExam->requestedCatalogSnapshot();
+                $requestedCodes = array_flip($orderExam->requestedParameterCodes());
 
-                foreach ($orderExam->catalog_snapshot['sections'] ?? [] as $section) {
+                foreach ($requestedSnapshot['sections'] ?? [] as $section) {
                     $isMatrix = ($section['structure'] ?? null) === 'parasitological_matrix';
 
                     if ($isMatrix) {
@@ -98,9 +100,10 @@ class ValidateLabOrder
                 $examSnapshots[] = [
                     'order_exam_id' => $orderExam->getKey(),
                     'exam_id' => $orderExam->exam_id,
-                    'catalog_snapshot' => $orderExam->catalog_snapshot,
+                    'catalog_snapshot' => $requestedSnapshot,
                     'section_statuses' => $orderExam->section_statuses ?? [],
                     'results' => $orderExam->resultValues
+                        ->filter(fn ($result): bool => isset($requestedCodes[$result->parameter_code]))
                         ->sortBy('parameter_code')
                         ->map(fn ($result): array => [
                             'parameter_code' => $result->parameter_code,
