@@ -17,6 +17,7 @@ use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Support\HtmlString;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 class AdminPanelProvider extends PanelProvider
@@ -28,13 +29,34 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
-            ->brandName('ISMALEJ PRADO')
+            ->brandName('Ismalej Prado')
+            ->brandLogo(fn (): HtmlString => new HtmlString(
+                '<span style="display:flex;align-items:center;gap:.6rem">'
+                .'<img src="'.e(route('lab.brand-mark')).'" alt="" style="height:2.4rem;width:auto">'
+                .'<span style="line-height:1.1;font-weight:700;color:#1d3b64">Ismalej Prado'
+                .'<span style="display:block;font-size:.7rem;font-weight:500;color:#64748b">Laboratorio clínico-biológico</span></span>'
+                .'</span>'
+            ))
+            ->brandLogoHeight('2.6rem')
+            ->favicon(fn (): string => route('lab.brand-mark'))
             ->databaseTransactions()
             ->strictAuthorization()
-            ->plugins([FilamentShieldPlugin::make()->navigationLabel('Roles y permisos')])
-            ->colors([
-                'primary' => Color::Teal,
+            ->plugins([
+                FilamentShieldPlugin::make()
+                    ->navigationLabel('Roles y permisos')
+                    ->navigationGroup('Administración')
+                    ->navigationSort(2),
             ])
+            ->colors([
+                'primary' => Color::hex('#1d3b64'),
+                'info' => Color::Sky,
+                'success' => Color::Emerald,
+                'warning' => Color::Amber,
+                'danger' => Color::Rose,
+                'gray' => Color::Slate,
+            ])
+            ->navigationGroups(['Operaciones', 'Catálogo clínico', 'Administración'])
+            ->sidebarCollapsibleOnDesktop()
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([

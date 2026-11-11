@@ -28,6 +28,13 @@ class CaptureOrderExamResults extends Page
 
     protected static bool $shouldRegisterNavigation = false;
 
+    protected static ?string $breadcrumb = 'Capturar resultados';
+
+    public function getTitle(): string
+    {
+        return 'Capturar resultados · '.($this->getOrderExam()->catalog_snapshot['exam']['name'] ?? 'Examen');
+    }
+
     #[Locked]
     public int $orderId;
 

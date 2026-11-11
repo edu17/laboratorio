@@ -22,11 +22,11 @@ class LabSettings extends Page
 
     protected static string|\BackedEnum|null $navigationIcon = Heroicon::OutlinedBuildingOffice2;
 
-    protected static UnitEnum|string|null $navigationGroup = 'Configuración';
+    protected static UnitEnum|string|null $navigationGroup = 'Administración';
 
     protected static ?string $navigationLabel = 'Laboratorio';
 
-    protected static ?int $navigationSort = 90;
+    protected static ?int $navigationSort = 4;
 
     /** @var array<string, mixed>|null */
     public ?array $data = [];

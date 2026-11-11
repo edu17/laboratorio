@@ -30,7 +30,9 @@ class ReferringDoctorResource extends Resource
 {
     protected static ?string $model = ReferringDoctor::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserGroup;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedIdentification;
+
+    protected static ?int $navigationSort = 3;
 
     protected static UnitEnum|string|null $navigationGroup = 'Operaciones';
 
