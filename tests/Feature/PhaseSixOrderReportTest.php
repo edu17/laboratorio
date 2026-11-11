@@ -26,6 +26,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
+use Spatie\Permission\Models\Role;
 
 uses(LazilyRefreshDatabase::class);
 
@@ -287,7 +288,12 @@ it('streams and downloads a PDF only for an authorized user with a current valid
         ->assertOk()
         ->assertHeader('Content-Disposition', 'attachment; filename=reporte-'.$order->number.'-v1.pdf');
 
-    $this->actingAs($technician)->get(route('orders.report', $order))->assertForbidden();
+    $this->actingAs($technician)->get(route('orders.report', $order))->assertOk();
+
+    $withoutReportPermission = User::factory()->create();
+    $withoutReportPermission->assignRole(Role::create(['name' => 'Sin reportes', 'guard_name' => 'web'])
+        ->givePermissionTo(['Access:Panel', 'ViewAny:Order', 'View:Order']));
+    $this->actingAs($withoutReportPermission)->get(route('orders.report', $order))->assertForbidden();
 });
 
 it('requires authentication and blocks drafts and reopened orders from report generation', function (): void {

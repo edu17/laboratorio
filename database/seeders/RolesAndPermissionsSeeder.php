@@ -11,6 +11,18 @@ use Spatie\Permission\PermissionRegistrar;
 class RolesAndPermissionsSeeder extends Seeder
 {
     /**
+     * Recepción y Técnico: registrar pacientes y médicos, crear órdenes, capturar resultados e imprimir reportes.
+     *
+     * @var list<string>
+     */
+    public const FRONT_DESK_PERMISSIONS = [
+        'Access:Panel', 'ViewAny:Patient', 'View:Patient', 'Create:Patient', 'Update:Patient',
+        'ViewAny:ReferringDoctor', 'View:ReferringDoctor', 'Create:ReferringDoctor', 'Update:ReferringDoctor',
+        'ViewAny:Order', 'View:Order', 'Create:Order', 'Update:Order',
+        'Capture:Result', 'View:Result', 'Generate:Report',
+    ];
+
+    /**
      * Run the database seeds.
      */
     public function run(): void
@@ -37,25 +49,33 @@ class RolesAndPermissionsSeeder extends Seeder
 
             app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-            Role::findOrCreate('Administrador', 'web')->syncPermissions(array_values(array_diff($permissions, [
-                'Validate:Order', 'Reopen:Order', 'Publish:Report', 'Revoke:Report',
-            ])));
-            Role::findOrCreate('Técnico', 'web')->syncPermissions([
-                'Access:Panel', 'ViewAny:Patient', 'View:Patient', 'Create:Patient', 'Update:Patient',
-                'ViewAny:ReferringDoctor', 'View:ReferringDoctor', 'Create:ReferringDoctor', 'Update:ReferringDoctor',
-            ]);
-            Role::findOrCreate('Validador', 'web')->syncPermissions([
-                'Access:Panel', 'ViewAny:Patient', 'View:Patient',
-                'ViewAny:ReferringDoctor', 'View:ReferringDoctor',
-                'ViewAny:Exam', 'View:Exam',
-                'ViewAny:ExamSection', 'View:ExamSection',
-                'ViewAny:ExamParameter', 'View:ExamParameter',
-                'ViewAny:Order', 'View:Order',
-                'View:Result',
-                'Validate:Order', 'Reopen:Order',
-                'Generate:Report',
-                'Publish:Report', 'Revoke:Report',
-            ]);
+            $defaults = [
+                'Administrador' => array_values(array_diff($permissions, ['Validate:Order', 'Reopen:Order', 'Publish:Report', 'Revoke:Report'])),
+                'Recepción' => self::FRONT_DESK_PERMISSIONS,
+                'Técnico' => self::FRONT_DESK_PERMISSIONS,
+                'Validador' => [
+                    'Access:Panel', 'ViewAny:Patient', 'View:Patient',
+                    'ViewAny:ReferringDoctor', 'View:ReferringDoctor',
+                    'ViewAny:Exam', 'View:Exam',
+                    'ViewAny:ExamSection', 'View:ExamSection',
+                    'ViewAny:ExamParameter', 'View:ExamParameter',
+                    'ViewAny:Order', 'View:Order',
+                    'View:Result',
+                    'Validate:Order', 'Reopen:Order',
+                    'Generate:Report',
+                    'Publish:Report', 'Revoke:Report',
+                ],
+            ];
+
+            // Los permisos por defecto solo se asignan al crear el rol: después se configuran
+            // desde Roles en el panel, y volver a ejecutar el seeder no deshace esos cambios.
+            foreach ($defaults as $roleName => $rolePermissions) {
+                $role = Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'web']);
+
+                if ($role->wasRecentlyCreated) {
+                    $role->syncPermissions($rolePermissions);
+                }
+            }
         });
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();

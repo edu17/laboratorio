@@ -16,6 +16,7 @@ use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Livewire;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
 uses(LazilyRefreshDatabase::class);
@@ -45,10 +46,35 @@ it('seeds roles idempotently without creating users or duplicate permissions', f
     $this->seed(RolesAndPermissionsSeeder::class);
     $this->seed(RolesAndPermissionsSeeder::class);
 
-    $this->assertDatabaseCount('roles', 3);
+    $this->assertDatabaseCount('roles', 4);
     $this->assertDatabaseCount('permissions', 38);
     $this->assertDatabaseCount('users', 0);
-    expect(Role::findByName('Técnico')->hasPermissionTo('Manage:User'))->toBeFalse();
+    expect(Role::findByName('Técnico')->hasPermissionTo('Manage:User'))->toBeFalse()
+        ->and(Role::findByName('Recepción')->permissions->pluck('name')->sort()->values()->all())
+        ->toBe(Role::findByName('Técnico')->permissions->pluck('name')->sort()->values()->all());
+});
+
+it('keeps role permissions configured in the panel when the seeder runs again', function () {
+    $this->seed(RolesAndPermissionsSeeder::class);
+    Role::findByName('Técnico')->revokePermissionTo('Capture:Result');
+    Role::findByName('Recepción')->givePermissionTo('Cancel:Order');
+
+    $this->seed(RolesAndPermissionsSeeder::class);
+
+    expect(Role::findByName('Técnico')->hasPermissionTo('Capture:Result'))->toBeFalse()
+        ->and(Role::findByName('Técnico')->hasPermissionTo('Create:Order'))->toBeTrue()
+        ->and(Role::findByName('Recepción')->hasPermissionTo('Cancel:Order'))->toBeTrue();
+});
+
+it('lists every permission the panel uses in the role editor', function () {
+    $this->seed(RolesAndPermissionsSeeder::class);
+    $resourcePermissions = ['Patient', 'ReferringDoctor', 'Exam', 'ExamSection', 'ExamParameter', 'Order'];
+    $configurable = collect(config('filament-shield.custom_permissions'))->keys();
+
+    Permission::query()->pluck('name')
+        ->reject(fn (string $permission): bool => in_array(str($permission)->after(':')->toString(), $resourcePermissions, true)
+            && in_array(str($permission)->before(':')->toString(), ['ViewAny', 'View', 'Create', 'Update'], true))
+        ->each(fn (string $permission) => expect($configurable)->toContain($permission));
 });
 
 it('enforces patient and administration permissions for each initial role', function (string $role, bool $canWrite, bool $canManage) {

@@ -149,7 +149,7 @@ it('blocks result capture for validator and technician and blocks closed or with
     $orderExam = phaseFourOrderExam($administrator);
 
     expect(Gate::forUser($validator)->allows('captureResults', $orderExam))->toBeFalse()
-        ->and(Gate::forUser($technician)->allows('captureResults', $orderExam))->toBeFalse()
+        ->and(Gate::forUser($technician)->allows('captureResults', $orderExam))->toBeTrue()
         ->and(Gate::forUser($administrator)->allows('captureResults', $orderExam))->toBeTrue();
 
     expect(fn () => app(SaveOrderExamResultDraft::class)->handle($orderExam, ['values' => []], $validator))

@@ -195,8 +195,13 @@ it('allows validators to read orders but blocks changes and redirects guests to 
     $this->get('/admin/ordenes/'.$order->id)->assertOk();
 
     $this->actingAs(phaseThreeUser('Técnico'))
-        ->get('/admin/pacientes')
+        ->get('/admin/ordenes')
         ->assertOk();
+
+    $patientsOnly = User::factory()->create();
+    $patientsOnly->assignRole(Role::create(['name' => 'Solo pacientes', 'guard_name' => 'web'])
+        ->givePermissionTo(['Access:Panel', 'ViewAny:Patient', 'View:Patient']));
+    $this->actingAs($patientsOnly)->get('/admin/pacientes')->assertOk();
     $this->get('/admin/ordenes')->assertForbidden();
 });
 
