@@ -68,7 +68,7 @@ class BuildValidatedOrderReportData
         }
 
         $report = [
-            'template_version' => '1',
+            'template_version' => '2',
             'generated_at' => now()->format('d/m/Y H:i'),
             'institution' => $this->formatInstitution($snapshot['lab_profile'] ?? []),
             'order' => [
