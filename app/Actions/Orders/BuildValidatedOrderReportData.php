@@ -190,6 +190,23 @@ class BuildValidatedOrderReportData
     }
 
     /**
+     * Resultados actuales de un examen con el mismo formato del reporte (referencia por sexo, marca de
+     * fuera de rango, barra de rango): lo que se ve en la ficha de la orden es lo que se imprime.
+     *
+     * @return array<string, mixed>
+     */
+    public function formatOrderExam(OrderExam $orderExam, ?string $patientSex): array
+    {
+        return $this->formatExam([
+            'catalog_snapshot' => $orderExam->requestedCatalogSnapshot(),
+            'section_statuses' => $orderExam->section_statuses ?? [],
+            'results' => $orderExam->resultValues
+                ->map(fn ($result): array => ['parameter_code' => $result->parameter_code, 'value' => $result->value])
+                ->all(),
+        ], $patientSex);
+    }
+
+    /**
      * @param  array<string, mixed>  $exam
      * @return array<string, mixed>
      */

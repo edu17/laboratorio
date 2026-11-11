@@ -47,23 +47,11 @@ class OrdersTable
                 TextColumn::make('ordered_at')->label('Fecha')->dateTime('d/m/Y H:i')->sortable(),
                 TextColumn::make('order_exams_count')->counts('orderExams')->label('Exámenes'),
                 TextColumn::make('status')->label('Estado')->badge()
-                    ->formatStateUsing(fn (string $state): string => match ($state) {
-                        Order::STATUS_PENDING => 'Pendiente',
-                        Order::STATUS_IN_PROGRESS => 'En proceso',
-                        Order::STATUS_VALIDATED => 'Validada',
-                        Order::STATUS_PUBLISHED => 'Publicada',
-                        Order::STATUS_CANCELED => 'Anulada',
-                        default => $state,
-                    }),
+                    ->formatStateUsing(fn (string $state): string => Order::STATUS_LABELS[$state] ?? $state)
+                    ->color(fn (string $state): string => Order::STATUS_COLORS[$state] ?? 'gray'),
             ])
             ->filters([
-                SelectFilter::make('status')->label('Estado')->options([
-                    Order::STATUS_PENDING => 'Pendiente',
-                    Order::STATUS_IN_PROGRESS => 'En proceso',
-                    Order::STATUS_VALIDATED => 'Validada',
-                    Order::STATUS_PUBLISHED => 'Publicada',
-                    Order::STATUS_CANCELED => 'Anulada',
-                ]),
+                SelectFilter::make('status')->label('Estado')->options(Order::STATUS_LABELS),
                 SelectFilter::make('exam_id')
                     ->label('Examen')
                     ->options(fn (): array => Exam::query()->orderBy('name')->pluck('name', 'id')->all())

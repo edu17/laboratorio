@@ -25,6 +25,15 @@ class OrderExam extends Model
 
     public const STATUS_WITHDRAWN = 'retirado';
 
+    /** @var array<string, string> Etiquetas legibles para el panel. */
+    public const STATUS_LABELS = [
+        self::STATUS_PENDING => 'Pendiente',
+        self::STATUS_IN_PROGRESS => 'En proceso',
+        self::STATUS_VALIDATED => 'Validado',
+        self::STATUS_CANCELED => 'Anulado',
+        self::STATUS_WITHDRAWN => 'Retirado',
+    ];
+
     public const SECTION_STATUS_PENDING = 'pending';
 
     public const SECTION_STATUS_COMPLETED_WITH_FINDINGS = 'completed_with_findings';

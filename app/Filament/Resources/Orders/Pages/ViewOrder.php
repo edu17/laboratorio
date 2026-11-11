@@ -11,8 +11,8 @@ use App\Filament\Resources\Orders\OrderResource;
 use App\Models\Order;
 use App\Models\OrderExam;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\EditAction;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
@@ -23,12 +23,39 @@ class ViewOrder extends ViewRecord
 {
     protected static string $resource = OrderResource::class;
 
+    public function getTitle(): string
+    {
+        return 'Orden '.$this->getRecord()->number;
+    }
+
+    /**
+     * El primer examen que el usuario puede capturar y aún tiene resultados pendientes; si todos están
+     * completos, el primero que todavía se puede corregir.
+     */
+    private function nextExamToCapture(): ?OrderExam
+    {
+        /** @var Order $order */
+        $order = $this->getRecord();
+        $capturable = $order->loadMissing(['orderExams.exam', 'orderExams.resultValues'])->orderExams
+            ->each(fn (OrderExam $orderExam): OrderExam => $orderExam->setRelation('order', $order))
+            ->filter(fn (OrderExam $orderExam): bool => auth()->user()?->can('captureResults', $orderExam) ?? false);
+
+        return $capturable->first(fn (OrderExam $orderExam): bool => $orderExam->missingResults() !== []) ?? $capturable->first();
+    }
+
     protected function getHeaderActions(): array
     {
         return [
-            EditAction::make(),
+            Action::make('captureResults')
+                ->label('Capturar resultados')
+                ->icon('heroicon-o-pencil-square')
+                ->visible(fn (): bool => $this->nextExamToCapture() !== null)
+                ->url(fn (Order $record): ?string => ($orderExam = $this->nextExamToCapture())
+                    ? OrderResource::getUrl('capture-results', ['record' => $record, 'orderExam' => $orderExam])
+                    : null),
             Action::make('validateResults')
                 ->label('Validar orden completa')
+                ->icon('heroicon-o-check-badge')
                 ->color('success')
                 ->visible(fn (Order $record): bool => auth()->user()?->can('validateResults', $record) ?? false)
                 ->modalHeading('Confirmar validación')
@@ -53,49 +80,15 @@ class ViewOrder extends ViewRecord
 
                     return redirect(OrderResource::getUrl('view', ['record' => $record]));
                 }),
-            Action::make('reopenResults')
-                ->label('Reabrir orden')
-                ->color('warning')
-                ->visible(fn (Order $record): bool => auth()->user()?->can('reopenResults', $record) ?? false)
-                ->form([
-                    Textarea::make('reason')->label('Motivo de reapertura')->required()->maxLength(1000),
-                ])
-                ->requiresConfirmation()
-                ->action(function (Order $record, array $data): void {
-                    app(ReopenLabOrder::class)->handle($record, $data['reason'], auth()->user());
-
-                    Notification::make()->success()->title('Orden reabierta')->send();
-                }),
-            Action::make('captureResults')
-                ->label('Capturar borrador')
-                ->visible(fn (Order $record): bool => $record->orderExams
-                    ->contains(fn (OrderExam $orderExam): bool => auth()->user()?->can('captureResults', $orderExam) ?? false))
-                ->form(fn (Order $record): array => [
-                    Select::make('order_exam_id')
-                        ->label('Examen')
-                        ->options($record->orderExams
-                            ->filter(fn (OrderExam $orderExam): bool => auth()->user()?->can('captureResults', $orderExam) ?? false)
-                            ->mapWithKeys(fn (OrderExam $orderExam): array => [
-                                $orderExam->getKey() => $orderExam->catalog_snapshot['exam']['name'] ?? $orderExam->exam->name,
-                            ])
-                            ->all())
-                        ->required(),
-                ])
-                ->action(fn (Order $record, array $data) => redirect(OrderResource::getUrl('capture-results', [
-                    'record' => $record,
-                    'orderExam' => $data['order_exam_id'],
-                ]))),
             Action::make('viewReport')
                 ->label('Ver reporte PDF')
+                ->icon('heroicon-o-document-text')
                 ->visible(fn (Order $record): bool => auth()->user()?->can('generateReport', $record) ?? false)
                 ->url(fn (Order $record): string => route('orders.report', ['order' => $record]))
                 ->openUrlInNewTab(),
-            Action::make('downloadReport')
-                ->label('Descargar PDF')
-                ->visible(fn (Order $record): bool => auth()->user()?->can('generateReport', $record) ?? false)
-                ->url(fn (Order $record): string => route('orders.report', ['order' => $record, 'download' => 1])),
             Action::make('publishReport')
                 ->label('Publicar y generar QR')
+                ->icon('heroicon-o-qr-code')
                 ->color('success')
                 ->visible(fn (Order $record): bool => auth()->user()?->can('publishReport', $record) ?? false)
                 ->modalHeading('Publicar reporte mediante QR')
@@ -108,31 +101,55 @@ class ViewOrder extends ViewRecord
 
                     return redirect()->route('orders.report', $record);
                 }),
-            Action::make('revokeReport')
-                ->label('Revocar acceso QR')
-                ->color('danger')
-                ->visible(fn (Order $record): bool => auth()->user()?->can('revokeReport', $record) ?? false)
-                ->requiresConfirmation()
-                ->modalDescription('El enlace dejará de mostrar el PDF y el reporte volverá a estado validado.')
-                ->action(function (Order $record): void {
-                    app(RevokePublishedReport::class)->handle($record, auth()->user());
+            ActionGroup::make([
+                EditAction::make(),
+                Action::make('downloadReport')
+                    ->label('Descargar PDF')
+                    ->visible(fn (Order $record): bool => auth()->user()?->can('generateReport', $record) ?? false)
+                    ->url(fn (Order $record): string => route('orders.report', ['order' => $record, 'download' => 1])),
+                Action::make('reopenResults')
+                    ->label('Reabrir orden')
+                    ->color('warning')
+                    ->visible(fn (Order $record): bool => auth()->user()?->can('reopenResults', $record) ?? false)
+                    ->form([
+                        Textarea::make('reason')->label('Motivo de reapertura')->required()->maxLength(1000),
+                    ])
+                    ->requiresConfirmation()
+                    ->action(function (Order $record, array $data): void {
+                        app(ReopenLabOrder::class)->handle($record, $data['reason'], auth()->user());
 
-                    Notification::make()->success()->title('Acceso QR revocado')->send();
-                }),
-            Action::make('cancel')
-                ->label('Anular orden')
-                ->color('danger')
-                ->visible(fn (Order $record): bool => $record->status !== Order::STATUS_CANCELED
-                    && (auth()->user()?->can('cancel', $record) ?? false))
-                ->form([
-                    Textarea::make('cancellation_reason')->label('Motivo de anulación')->required()->maxLength(1000),
-                ])
-                ->requiresConfirmation()
-                ->action(function (Order $record, array $data): void {
-                    app(CancelLabOrder::class)->handle($record, $data['cancellation_reason'], auth()->user());
+                        Notification::make()->success()->title('Orden reabierta')->send();
+                    }),
+                Action::make('revokeReport')
+                    ->label('Revocar acceso QR')
+                    ->color('danger')
+                    ->visible(fn (Order $record): bool => auth()->user()?->can('revokeReport', $record) ?? false)
+                    ->requiresConfirmation()
+                    ->modalDescription('El enlace dejará de mostrar el PDF y el reporte volverá a estado validado.')
+                    ->action(function (Order $record): void {
+                        app(RevokePublishedReport::class)->handle($record, auth()->user());
 
-                    Notification::make()->success()->title('Orden anulada')->send();
-                }),
+                        Notification::make()->success()->title('Acceso QR revocado')->send();
+                    }),
+                Action::make('cancel')
+                    ->label('Anular orden')
+                    ->color('danger')
+                    ->visible(fn (Order $record): bool => $record->status !== Order::STATUS_CANCELED
+                        && (auth()->user()?->can('cancel', $record) ?? false))
+                    ->form([
+                        Textarea::make('cancellation_reason')->label('Motivo de anulación')->required()->maxLength(1000),
+                    ])
+                    ->requiresConfirmation()
+                    ->action(function (Order $record, array $data): void {
+                        app(CancelLabOrder::class)->handle($record, $data['cancellation_reason'], auth()->user());
+
+                        Notification::make()->success()->title('Orden anulada')->send();
+                    }),
+            ])
+                ->label('Más')
+                ->icon('heroicon-o-ellipsis-vertical')
+                ->button()
+                ->color('gray'),
         ];
     }
 }
