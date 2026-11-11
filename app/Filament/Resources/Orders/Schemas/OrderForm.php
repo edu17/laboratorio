@@ -3,10 +3,12 @@
 namespace App\Filament\Resources\Orders\Schemas;
 
 use App\Actions\Orders\BuildOrderExamSnapshot;
+use App\Filament\Resources\ReferringDoctors\ReferringDoctorResource;
 use App\Models\Exam;
 use App\Models\Order;
 use App\Models\OrderExam;
 use App\Models\Patient;
+use App\Models\ReferringDoctor;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
@@ -16,6 +18,7 @@ use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Gate;
 
 class OrderForm
@@ -69,7 +72,29 @@ class OrderForm
                     ->columnSpanFull(),
                 Group::make(fn (Get $get, ?Order $record): array => self::requestedParameterFields($get('exam_ids') ?? [], $record))
                     ->columnSpanFull(),
-                TextInput::make('referring_doctor')->label('Doctor(a) remitente')->maxLength(180)->placeholder('Sin registrar'),
+                Select::make('referring_doctor_id')
+                    ->label('Médico remitente')
+                    ->relationship(
+                        'referringDoctor',
+                        'name',
+                        fn (Builder $query, ?Order $record): Builder => $query
+                            ->where(fn (Builder $query): Builder => $query
+                                ->where('is_active', true)
+                                ->when($record?->referring_doctor_id, fn (Builder $query, int $currentId): Builder => $query->orWhere('id', $currentId)))
+                            ->orderBy('name'),
+                    )
+                    ->getOptionLabelFromRecordUsing(fn (ReferringDoctor $record): string => $record->name.($record->specialty ? ' — '.$record->specialty : ''))
+                    ->searchable(['name', 'specialty', 'license_number'])
+                    ->preload()
+                    ->placeholder('Sin referencia')
+                    ->helperText('Déjalo vacío si el paciente viene sin referencia.')
+                    ->createOptionForm(ReferringDoctorResource::formFields())
+                    ->createOptionAction(fn ($action) => $action->label('Registrar médico remitente'))
+                    ->createOptionUsing(function (array $data): int {
+                        Gate::authorize('create', ReferringDoctor::class);
+
+                        return ReferringDoctor::create($data)->getKey();
+                    }),
                 Textarea::make('notes')->label('Observaciones administrativas')->maxLength(5000)->columnSpanFull(),
                 DatePicker::make('ordered_at')->label('Fecha de orden')->default(today())->disabled()->dehydrated(false),
                 TextInput::make('status')->label('Estado')->default('pendiente')->disabled()->dehydrated(false),

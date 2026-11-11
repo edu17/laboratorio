@@ -19,13 +19,15 @@ class CreateLabOrder
     public function __construct(
         private BuildOrderExamSnapshot $buildSnapshot,
         private ResolveRequestedParameterCodes $resolveRequestedCodes,
+        private ResolveReferringDoctor $resolveReferringDoctor,
     ) {}
 
     /**
      * @param  list<int|string>  $examIds
+     * @param  string|null  $referringDoctor  Texto libre; solo se usa si no se elige un médico del catálogo.
      * @param  array<int|string, list<string>>  $requestedParameterCodes  Análisis solicitados por examen; si falta un examen, se pide completo.
      */
-    public function handle(Patient $patient, array $examIds, User $actor, ?string $notes = null, ?string $referringDoctor = null, array $requestedParameterCodes = []): Order
+    public function handle(Patient $patient, array $examIds, User $actor, ?string $notes = null, ?string $referringDoctor = null, array $requestedParameterCodes = [], ?int $referringDoctorId = null): Order
     {
         Gate::forUser($actor)->authorize('create', Order::class);
 
@@ -43,8 +45,9 @@ class CreateLabOrder
 
         $examIds = array_map('intval', $validated['exam_ids']);
 
-        return DB::transaction(function () use ($patient, $examIds, $actor, $notes, $referringDoctor, $requestedParameterCodes): Order {
+        return DB::transaction(function () use ($patient, $examIds, $actor, $notes, $referringDoctor, $requestedParameterCodes, $referringDoctorId): Order {
             $patient = Patient::query()->findOrFail($patient->getKey());
+            $referral = $this->resolveReferringDoctor->handle($referringDoctorId, $referringDoctor);
             $exams = Exam::query()
                 ->whereIn('id', $examIds)
                 ->where('is_active', true)
@@ -82,7 +85,7 @@ class CreateLabOrder
                 'status' => Order::STATUS_PENDING,
                 'created_by' => $actor->getKey(),
                 'notes' => $notes,
-                'referring_doctor' => filled($referringDoctor) ? trim($referringDoctor) : null,
+                ...$referral,
             ]);
 
             foreach ($exams as $exam) {

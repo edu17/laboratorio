@@ -7,6 +7,7 @@ use App\Filament\Resources\Exams\ExamResource;
 use App\Filament\Resources\ExamSections\ExamSectionResource;
 use App\Filament\Resources\Orders\OrderResource;
 use App\Filament\Resources\Patients\PatientResource;
+use App\Filament\Resources\ReferringDoctors\ReferringDoctorResource;
 use App\Filament\Resources\Users\UserResource;
 use BezhanSalleh\FilamentShield\Resources\Roles\RoleResource;
 use Filament\Pages\Dashboard;
@@ -203,6 +204,7 @@ return [
             ExamSectionResource::class => ['viewAny', 'view', 'create', 'update'],
             ExamParameterResource::class => ['viewAny', 'view', 'create', 'update'],
             OrderResource::class => ['viewAny', 'view', 'create', 'update'],
+            ReferringDoctorResource::class => ['viewAny', 'view', 'create', 'update'],
         ],
         'exclude' => [
             RoleResource::class,

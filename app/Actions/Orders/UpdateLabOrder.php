@@ -17,13 +17,15 @@ class UpdateLabOrder
     public function __construct(
         private BuildOrderExamSnapshot $buildSnapshot,
         private ResolveRequestedParameterCodes $resolveRequestedCodes,
+        private ResolveReferringDoctor $resolveReferringDoctor,
     ) {}
 
     /**
      * @param  list<int|string>  $examIds
+     * @param  string|null  $referringDoctor  Texto libre; solo se usa si no se elige un médico del catálogo.
      * @param  array<int|string, list<string>>  $requestedParameterCodes  Análisis solicitados por examen; si falta un examen, conserva lo que ya tenía.
      */
-    public function handle(Order $order, Patient $patient, array $examIds, ?string $notes, User $actor, ?string $referringDoctor = null, array $requestedParameterCodes = []): Order
+    public function handle(Order $order, Patient $patient, array $examIds, ?string $notes, User $actor, ?string $referringDoctor = null, array $requestedParameterCodes = [], ?int $referringDoctorId = null): Order
     {
         Gate::forUser($actor)->authorize('update', $order);
 
@@ -41,7 +43,7 @@ class UpdateLabOrder
 
         $examIds = array_map('intval', $validated['exam_ids']);
 
-        return DB::transaction(function () use ($order, $patient, $examIds, $notes, $referringDoctor, $requestedParameterCodes): Order {
+        return DB::transaction(function () use ($order, $patient, $examIds, $notes, $referringDoctor, $requestedParameterCodes, $referringDoctorId): Order {
             $order = Order::query()->lockForUpdate()->findOrFail($order->getKey());
 
             if (in_array($order->status, [Order::STATUS_CANCELED, Order::STATUS_VALIDATED, Order::STATUS_PUBLISHED], true)) {
@@ -124,7 +126,7 @@ class UpdateLabOrder
             $order->update([
                 'patient_id' => $patient->getKey(),
                 'notes' => $notes,
-                'referring_doctor' => filled($referringDoctor) ? trim($referringDoctor) : null,
+                ...$this->resolveReferringDoctor->handle($referringDoctorId, $referringDoctor, $order->referring_doctor_id),
             ]);
 
             return $order->fresh(['patient', 'creator', 'orderExams.exam']);

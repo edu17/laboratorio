@@ -82,6 +82,11 @@ class OrdersTable
                     ->query(fn (Builder $query, array $data): Builder => $query
                         ->when($data['value'] ?? null, fn (Builder $query, int|string $examId): Builder => $query
                             ->whereHas('orderExams', fn (Builder $query): Builder => $query->where('exam_id', $examId)))),
+                SelectFilter::make('referring_doctor_id')
+                    ->label('Médico remitente')
+                    ->relationship('referringDoctor', 'name')
+                    ->searchable()
+                    ->preload(),
                 Filter::make('ordered_at')->label('Fecha de orden')
                     ->schema([
                         DatePicker::make('from')->label('Desde'),

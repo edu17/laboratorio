@@ -20,6 +20,7 @@ class RolesAndPermissionsSeeder extends Seeder
         DB::transaction(function (): void {
             $permissions = [
                 'Access:Panel', 'ViewAny:Patient', 'View:Patient', 'Create:Patient', 'Update:Patient',
+                'ViewAny:ReferringDoctor', 'View:ReferringDoctor', 'Create:ReferringDoctor', 'Update:ReferringDoctor',
                 'ViewAny:Exam', 'View:Exam', 'Create:Exam', 'Update:Exam',
                 'ViewAny:ExamSection', 'View:ExamSection', 'Create:ExamSection', 'Update:ExamSection',
                 'ViewAny:ExamParameter', 'View:ExamParameter', 'Create:ExamParameter', 'Update:ExamParameter',
@@ -41,9 +42,11 @@ class RolesAndPermissionsSeeder extends Seeder
             ])));
             Role::findOrCreate('Técnico', 'web')->syncPermissions([
                 'Access:Panel', 'ViewAny:Patient', 'View:Patient', 'Create:Patient', 'Update:Patient',
+                'ViewAny:ReferringDoctor', 'View:ReferringDoctor', 'Create:ReferringDoctor', 'Update:ReferringDoctor',
             ]);
             Role::findOrCreate('Validador', 'web')->syncPermissions([
                 'Access:Panel', 'ViewAny:Patient', 'View:Patient',
+                'ViewAny:ReferringDoctor', 'View:ReferringDoctor',
                 'ViewAny:Exam', 'View:Exam',
                 'ViewAny:ExamSection', 'View:ExamSection',
                 'ViewAny:ExamParameter', 'View:ExamParameter',

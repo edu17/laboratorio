@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['number', 'patient_id', 'ordered_at', 'status', 'created_by', 'notes', 'referring_doctor', 'cancellation_reason', 'canceled_at', 'canceled_by', 'validation_version', 'validated_by', 'validated_at'])]
+#[Fillable(['number', 'patient_id', 'ordered_at', 'status', 'created_by', 'notes', 'referring_doctor', 'referring_doctor_id', 'cancellation_reason', 'canceled_at', 'canceled_by', 'validation_version', 'validated_by', 'validated_at'])]
 class Order extends Model
 {
     /** @use HasFactory<OrderFactory> */
@@ -28,6 +28,11 @@ class Order extends Model
     public function patient(): BelongsTo
     {
         return $this->belongsTo(Patient::class);
+    }
+
+    public function referringDoctor(): BelongsTo
+    {
+        return $this->belongsTo(ReferringDoctor::class);
     }
 
     public function creator(): BelongsTo

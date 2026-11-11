@@ -50,8 +50,9 @@ class EditOrder extends EditRecord
             $data['exam_ids'],
             $data['notes'] ?? null,
             auth()->user(),
-            $data['referring_doctor'] ?? null,
+            null,
             $data['requested_parameter_codes'] ?? [],
+            filled($data['referring_doctor_id'] ?? null) ? (int) $data['referring_doctor_id'] : null,
         );
     }
 }

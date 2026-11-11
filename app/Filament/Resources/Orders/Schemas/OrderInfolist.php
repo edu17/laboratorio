@@ -26,7 +26,7 @@ class OrderInfolist
                     ->formatStateUsing(fn (?int $state): ?int => $state === 0 ? null : $state)
                     ->placeholder('Sin validar'),
                 TextEntry::make('creator.name')->label('Creada por'),
-                TextEntry::make('referring_doctor')->label('Doctor(a) remitente')->placeholder('Sin registrar'),
+                TextEntry::make('referring_doctor')->label('Médico remitente')->placeholder('Sin referencia'),
                 TextEntry::make('notes')->label('Observaciones administrativas')->placeholder('Sin observaciones'),
                 TextEntry::make('orderExams')
                     ->label('Exámenes y resultados capturados')

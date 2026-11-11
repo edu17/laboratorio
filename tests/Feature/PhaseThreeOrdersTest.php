@@ -12,6 +12,7 @@ use App\Models\Order;
 use App\Models\OrderExam;
 use App\Models\OrderValidationEvent;
 use App\Models\Patient;
+use App\Models\ReferringDoctor;
 use App\Models\User;
 use Database\Seeders\HecesCatalogSeeder;
 use Database\Seeders\RolesAndPermissionsSeeder;
@@ -151,23 +152,27 @@ it('creates orders through the authenticated Filament form and allows permitted 
     $patient = Patient::factory()->create();
     $exam = Exam::where('code', 'HECES')->sole();
     $otherExam = Exam::factory()->create(['name' => 'Examen ficticio']);
+    $initialDoctor = ReferringDoctor::factory()->create(['name' => 'Dra. Ficticia Inicial']);
+    $updatedDoctor = ReferringDoctor::factory()->create(['name' => 'Dra. Ficticia Actualizada']);
 
     Livewire::test(CreateOrder::class)
-        ->fillForm(['patient_id' => $patient->id, 'exam_ids' => [$exam->id, $otherExam->id], 'notes' => 'Prueba de interfaz', 'referring_doctor' => 'Dra. Ficticia Inicial'])
+        ->fillForm(['patient_id' => $patient->id, 'exam_ids' => [$exam->id, $otherExam->id], 'notes' => 'Prueba de interfaz', 'referring_doctor_id' => $initialDoctor->id])
         ->call('create')
         ->assertHasNoFormErrors();
 
     $order = Order::where('patient_id', $patient->id)->sole();
     expect($order->orderExams()->count())->toBe(2);
     expect($order->referring_doctor)->toBe('Dra. Ficticia Inicial');
+    expect($order->referring_doctor_id)->toBe($initialDoctor->id);
 
     Livewire::test(EditOrder::class, ['record' => $order->id])
         ->assertSet('data.exam_ids', [$exam->id, $otherExam->id])
-        ->fillForm(['patient_id' => $patient->id, 'exam_ids' => [$exam->id], 'notes' => 'Nota actualizada', 'referring_doctor' => 'Dra. Ficticia Actualizada'])
+        ->assertSet('data.referring_doctor_id', $initialDoctor->id)
+        ->fillForm(['patient_id' => $patient->id, 'exam_ids' => [$exam->id], 'notes' => 'Nota actualizada', 'referring_doctor_id' => $updatedDoctor->id])
         ->call('save')
         ->assertHasNoFormErrors();
 
-    $this->assertDatabaseHas('orders', ['id' => $order->id, 'notes' => 'Nota actualizada', 'referring_doctor' => 'Dra. Ficticia Actualizada']);
+    $this->assertDatabaseHas('orders', ['id' => $order->id, 'notes' => 'Nota actualizada', 'referring_doctor' => 'Dra. Ficticia Actualizada', 'referring_doctor_id' => $updatedDoctor->id]);
     $this->assertDatabaseHas('order_exams', [
         'order_id' => $order->id,
         'exam_id' => $otherExam->id,
