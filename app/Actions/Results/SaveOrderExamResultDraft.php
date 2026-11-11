@@ -16,6 +16,8 @@ use Illuminate\Validation\ValidationException;
 
 class SaveOrderExamResultDraft
 {
+    public function __construct(private CalculateDerivedResults $calculateDerivedResults) {}
+
     /**
      * @param  array<string, mixed>  $data
      */
@@ -160,6 +162,15 @@ class SaveOrderExamResultDraft
 
             Gate::forUser($actor)->authorize('captureResults', $lockedOrderExam);
 
+            $normalizedValues = $this->calculateDerivedResults->handle(
+                $normalizedValues,
+                $lockedOrderExam->resultValues()
+                    ->whereIn('parameter_code', array_keys(CalculateDerivedResults::FORMULAS))
+                    ->get()
+                    ->mapWithKeys(fn ($result): array => [$result->parameter_code => $result->value])
+                    ->all(),
+            );
+
             foreach ($normalizedValues as $parameterCode => $value) {
                 $result = $lockedOrderExam->resultValues()
                     ->where('parameter_code', $parameterCode)
@@ -206,7 +217,13 @@ class SaveOrderExamResultDraft
                 'action' => 'results_draft_saved',
                 'entity_type' => $lockedOrderExam->getMorphClass(),
                 'entity_id' => $lockedOrderExam->getKey(),
-                'metadata' => ['parameter_count' => count($normalizedValues)],
+                'metadata' => [
+                    'parameter_count' => count($normalizedValues),
+                    'calculated_parameters' => array_keys(array_filter(
+                        $normalizedValues,
+                        fn (array $value): bool => ($value['calculated'] ?? false) === true,
+                    )),
+                ],
             ]);
 
             return $lockedOrderExam->fresh(['order', 'resultValues']);

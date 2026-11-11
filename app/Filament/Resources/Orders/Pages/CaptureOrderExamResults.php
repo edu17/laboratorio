@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Orders\Pages;
 
+use App\Actions\Results\CalculateDerivedResults;
 use App\Actions\Results\ResolveParameterReference;
 use App\Actions\Results\SaveOrderExamResultDraft;
 use App\Filament\Resources\Orders\OrderResource;
@@ -196,6 +197,9 @@ class CaptureOrderExamResults extends Page
                     $helperText = collect([
                         $parameter['unit'] ?? null,
                         app(ResolveParameterReference::class)->handle($parameter, $patientSex, null)['text'],
+                        isset(CalculateDerivedResults::FORMULAS[$code])
+                            ? 'Se calcula al guardar si lo dejas vacío: '.CalculateDerivedResults::FORMULAS[$code]['description'].'. Puedes corregirlo escribiendo otro valor.'
+                            : null,
                     ])->filter(fn ($text): bool => filled($text))->implode(' · ');
 
                     $field->label($parameter['name'] ?? $code);
