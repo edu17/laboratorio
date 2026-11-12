@@ -342,6 +342,28 @@ return [
             ],
         ],
         [
+            'code' => 'HORMONAS',
+            'name' => 'Hormonas',
+            // Solo quedan en el borrador de QUIMICAS (testosterona libre) e INMUNOLOGIA (cortisol, ACTH e insulina).
+            'sheet' => 'INMUNOLOGIA',
+            'allows_partial_request' => true,
+            'sort_order' => 510,
+            'sections' => [
+                ['code' => 'fertilidad', 'name' => 'Hormonas de la fertilidad', 'parameters' => [
+                    $number('testosterona_libre', 'Testosterona libre', 'pg/mL', null, [
+                        'texto_masculino' => 'Hombres 18 a 60 años: 15 a 70 pg/mL',
+                    ], $pending),
+                ]],
+                ['code' => 'suprarrenales', 'name' => 'Cortisol y ACTH', 'parameters' => [
+                    $number('cortisol_am', 'Cortisol AM', 'µg/dL', '4.82 a 19.5 µg/dL', ['min' => '4.82', 'max' => '19.5'], $pending),
+                    $number('acth', 'Hormona adrenocorticotrópica (ACTH)', 'pg/mL', '7.2 a 63.3 pg/mL', ['min' => '7.2', 'max' => '63.3'], $pending),
+                ]],
+                ['code' => 'insulina', 'name' => 'Insulina', 'parameters' => [
+                    $number('insulina_preprandial', 'Insulina preprandial 0 minutos', 'µUI/mL', '2.6 a 28.4 µUI/mL', ['min' => '2.6', 'max' => '28.4'], $pending),
+                ]],
+            ],
+        ],
+        [
             'code' => 'PRO_BNP',
             'name' => 'Pro BNP-NT (Péptido natriurético tipo B)',
             'sheet' => 'ferritina',

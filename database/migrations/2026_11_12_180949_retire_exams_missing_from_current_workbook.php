@@ -14,11 +14,17 @@ use Illuminate\Support\Facades\DB;
  */
 return new class extends Migration
 {
-    /** @var list<string> Exámenes cuyas hojas (INFCC, TIROGLOBULINAS y PTH) ya no están en el libro. */
-    private const RETIRED_EXAMS = ['SARAMPION_IGM', 'HORMONAS'];
+    /** @var list<string> Exámenes cuya hoja (INFCC) ya no está en el libro. */
+    private const RETIRED_EXAMS = ['SARAMPION_IGM'];
 
-    /** @var array<string, list<string>> Código del examen => parámetros que ya no aparecen en el libro. */
+    /**
+     * Código del examen => parámetros que ya no aparecen en el libro. De Hormonas (hojas TIROGLOBULINAS y PTH,
+     * eliminadas) solo siguen en el borrador la testosterona libre, el cortisol, la ACTH y la insulina preprandial.
+     *
+     * @var array<string, list<string>>
+     */
     private const RETIRED_PARAMETERS = [
+        'HORMONAS' => ['prolactina', 'testosterona', 'hidroxiprogesterona_17', 'insulina_postprandial', 'indice_homa'],
         'TIROIDEAS' => ['tiroglobulina'],
         'FERROCINETICAS' => ['captacion_hierro'],
         'MARCADORES_TUMORALES' => ['ca_125', 'ca_19_9'],
@@ -28,6 +34,10 @@ return new class extends Migration
     private const IRON_MALE_RANGE = ['texto_masculino' => 'Hombres: 61 a 157 µg/dL', 'min_masculino' => '61', 'max_masculino' => '157'];
 
     private const IRON_FEMALE_RANGE = ['texto_femenino' => 'Mujeres: 37 a 145 µg/dL', 'min_femenino' => '37', 'max_femenino' => '145'];
+
+    private const HORMONES_OLD_SOURCE = '2025.xlsx · hoja TIROGLOBULINAS';
+
+    private const HORMONES_NEW_SOURCE = '2025.xlsx · hoja INMUNOLOGIA';
 
     public function up(): void
     {
@@ -47,6 +57,8 @@ return new class extends Migration
 
             $this->parameterQuery('VITAMINA_D', ['vitamina_d'])
                 ->update(['clinical_validation_status' => 'validated', 'updated_at' => now()]);
+
+            $this->replaceHormonesSource(self::HORMONES_OLD_SOURCE, self::HORMONES_NEW_SOURCE);
 
             foreach ([...array_keys(self::RETIRED_PARAMETERS), 'VITAMINA_D'] as $examCode) {
                 $this->publishUpdatedVersion($examCode);
@@ -74,6 +86,26 @@ return new class extends Migration
 
         $this->parameterQuery('VITAMINA_D', ['vitamina_d'])
             ->update(['clinical_validation_status' => 'pending', 'updated_at' => now()]);
+
+        $this->replaceHormonesSource(self::HORMONES_NEW_SOURCE, self::HORMONES_OLD_SOURCE);
+    }
+
+    /**
+     * La hoja de origen de Hormonas solo se cambia si sigue siendo la que cargó el catálogo.
+     */
+    private function replaceHormonesSource(string $from, string $to): void
+    {
+        $examId = DB::table('exams')->where('code', 'HORMONAS')->value('id');
+
+        if (! $examId) {
+            return;
+        }
+
+        $sectionIds = DB::table('exam_sections')->where('exam_id', $examId)->pluck('id');
+
+        DB::table('exams')->where('id', $examId)->where('source', $from)->update(['source' => $to, 'updated_at' => now()]);
+        DB::table('exam_sections')->whereIn('id', $sectionIds)->where('source', $from)->update(['source' => $to, 'updated_at' => now()]);
+        DB::table('exam_parameters')->whereIn('exam_section_id', $sectionIds)->where('source', $from)->update(['source' => $to, 'updated_at' => now()]);
     }
 
     private function publishUpdatedVersion(string $examCode): void

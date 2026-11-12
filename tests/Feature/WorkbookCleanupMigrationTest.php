@@ -43,7 +43,7 @@ $ironBothSexes = [
 
 it('retires what the current workbook no longer has and validates vitamin D', function () use ($ironBothSexes) {
     $measles = workbookExam('SARAMPION_IGM', ['sarampion_igm' => []]);
-    $hormones = workbookExam('HORMONAS', ['prolactina' => []]);
+    $hormones = workbookExam('HORMONAS', ['prolactina' => [], 'indice_homa' => [], 'testosterona_libre' => []]);
     $thyroid = workbookExam('TIROIDEAS', ['t3' => [], 'tiroglobulina' => []]);
     workbookExam('FERROCINETICAS', ['hierro_serico' => ['reference_config' => $ironBothSexes], 'captacion_hierro' => []]);
     workbookExam('VITAMINA_D', ['vitamina_d' => ['clinical_validation_status' => 'pending']]);
@@ -51,7 +51,10 @@ it('retires what the current workbook no longer has and validates vitamin D', fu
     workbookCleanupMigration()->up();
 
     expect($measles->fresh()->is_active)->toBeFalse()
-        ->and($hormones->fresh()->is_active)->toBeFalse()
+        ->and($hormones->fresh()->is_active)->toBeTrue()
+        ->and(workbookParameter('HORMONAS', 'prolactina')->is_active)->toBeFalse()
+        ->and(workbookParameter('HORMONAS', 'indice_homa')->is_active)->toBeFalse()
+        ->and(workbookParameter('HORMONAS', 'testosterona_libre')->is_active)->toBeTrue()
         ->and($thyroid->fresh()->is_active)->toBeTrue()
         ->and(workbookParameter('TIROIDEAS', 't3')->is_active)->toBeTrue()
         ->and(workbookParameter('TIROIDEAS', 'tiroglobulina')->is_active)->toBeFalse()
