@@ -3,6 +3,7 @@
 namespace App\Actions\Orders;
 
 use App\Actions\Results\ResolveParameterReference;
+use App\Models\Exam;
 use App\Models\Order;
 use App\Models\OrderExam;
 use App\Models\OrderValidationEvent;
@@ -89,7 +90,7 @@ class BuildValidatedOrderReportData
                 'validated_at_display' => Carbon::parse($snapshot['validated_at'] ?? $event->acted_at)->format('d/m/Y H:i'),
                 'validator_name' => $snapshot['validated_by']['name'] ?? $event->actor->name,
             ],
-            'exams' => array_map(fn (array $exam): array => $this->formatExam($exam, $snapshot['patient']['sex'] ?? null), $snapshot['exams']),
+            'exams' => $this->arrangeForPrinting(array_map(fn (array $exam): array => $this->formatExam($exam, $snapshot['patient']['sex'] ?? null), $snapshot['exams'])),
         ];
 
         $activeAccessToken = $order->reportAccessTokens()
@@ -107,6 +108,31 @@ class BuildValidatedOrderReportData
         }
 
         return $report;
+    }
+
+    /**
+     * Los exámenes que comparten hoja van primero y juntos; cada uno de los que se imprimen aparte va después,
+     * en su propia hoja. La opción se lee del catálogo vigente para que un cambio aplique también al reimprimir.
+     *
+     * @param  list<array<string, mixed>>  $exams
+     * @return list<array<string, mixed>>
+     */
+    private function arrangeForPrinting(array $exams): array
+    {
+        $separatePageCodes = Exam::query()
+            ->whereIn('code', array_column($exams, 'code'))
+            ->where('prints_on_separate_page', true)
+            ->pluck('code')
+            ->all();
+
+        $exams = array_map(fn (array $exam): array => [
+            ...$exam,
+            'prints_on_separate_page' => in_array($exam['code'], $separatePageCodes, true),
+        ], $exams);
+
+        usort($exams, fn (array $first, array $second): int => $first['prints_on_separate_page'] <=> $second['prints_on_separate_page']);
+
+        return $exams;
     }
 
     /**

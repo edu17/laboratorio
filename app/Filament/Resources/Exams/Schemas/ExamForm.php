@@ -35,6 +35,10 @@ class ExamForm
                     ->label('Se puede pedir de forma parcial')
                     ->helperText('Permite marcar en la orden solo los análisis solicitados. Las matrices se informan siempre completas.')
                     ->default(false),
+                Toggle::make('prints_on_separate_page')
+                    ->label('Se imprime en hoja aparte')
+                    ->helperText('Apagado, el resultado comparte hoja con los demás exámenes de la orden.')
+                    ->default(false),
                 TextInput::make('sort_order')->label('Orden')->numeric()->minValue(0)->default(0)->required(),
             ]);
     }

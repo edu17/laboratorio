@@ -18,6 +18,8 @@ class ExamInfolist
                     ->formatStateUsing(fn (string $state): string => $state === 'validated' ? 'Validado' : 'Pendiente'),
                 TextEntry::make('description')->label('Descripción')->placeholder('Sin descripción'),
                 TextEntry::make('is_active')->label('Estado')->formatStateUsing(fn (bool $state): string => $state ? 'Activo' : 'Inactivo'),
+                TextEntry::make('prints_on_separate_page')->label('Impresión')
+                    ->formatStateUsing(fn (bool $state): string => $state ? 'En hoja aparte' : 'Comparte hoja con otros exámenes'),
             ]);
     }
 }

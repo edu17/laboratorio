@@ -83,6 +83,7 @@
         .exam-title h2 { color: #1d3b64; font-size: 10.5pt; }
         .exam-title .range-hint { float: right; margin-top: 0.8mm; color: #5c6a78; font-size: 6.6pt; font-weight: normal; }
         .report-body > .exam-title:first-child { margin-top: 1mm; }
+        .exam-title.separate-page { margin-top: 1mm; page-break-before: always; }
 
         .section { margin-bottom: 2.5mm; page-break-inside: avoid; }
         .section-long { page-break-inside: auto; }
@@ -261,8 +262,9 @@
                 $examHasRange = collect($exam['sections'])->flatMap(fn (array $section): array => $section['rows'])->contains(fn (array $row): bool => ! empty($row['indicator']));
                 $showRangeHint = $examHasRange && ! $rangeHintShown;
                 $rangeHintShown = $rangeHintShown || $examHasRange;
+                $startsNewPage = ! $loop->first && (($exam['prints_on_separate_page'] ?? false) || ($report['exams'][$loop->index - 1]['prints_on_separate_page'] ?? false));
             @endphp
-            <header class="exam-title">
+            <header @class(['exam-title', 'separate-page' => $startsNewPage])>
                 @if ($showRangeHint)
                     <span class="range-hint">La barra muestra el resultado frente al rango de referencia</span>
                 @endif
