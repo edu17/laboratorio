@@ -2,8 +2,9 @@
 
 /*
  * Paneles cuantitativos tomados de 2025.xlsx.
- * - Validado: el valor está en la zona impresa (columnas A–J) de una hoja vigente (1–39).
- * - Pendiente: el valor solo aparece en el borrador o en una hoja obsoleta, o está en duda.
+ * - Validado: el valor está en la zona impresa (columnas A–J) de una hoja del libro vigente.
+ * - Pendiente: el valor solo aparece en el borrador (columnas K en adelante) o está en duda.
+ * Los análisis que ya no aparecen en el libro no se cargan: el laboratorio ya no los realiza.
  *   Se guarda como candidato y no se imprime hasta que el laboratorio lo confirme
  *   (ver el documento "Pendientes de validación con el laboratorio").
  */
@@ -128,7 +129,6 @@ return [
                     $number('t3', 'T3', 'ng/mL', 'Valor normal 0.8 - 2.0 ng/mL', ['min' => '0.8', 'max' => '2.0']),
                     $number('t4', 'T4', 'µg/dL', 'Valor normal 6.0 - 12.0 µg/dL', ['min' => '6.0', 'max' => '12.0']),
                     $number('tsh', 'TSH', 'µUI/mL', 'Valor normal 0.5 - 5.0 µUI/mL', ['min' => '0.5', 'max' => '5.0']),
-                    $number('tiroglobulina', 'Tiroglobulina', 'ng/mL', 'Hasta 78.00 ng/mL', ['max' => '78'], $pending),
                 ]],
             ],
         ],
@@ -176,12 +176,8 @@ return [
                     ]),
                     $number('hierro_serico', 'Hierro sérico', 'µg/dL', null, [
                         'texto_masculino' => 'Hombres: 61 a 157 µg/dL', 'min_masculino' => '61', 'max_masculino' => '157',
-                        'texto_femenino' => 'Mujeres: 37 a 145 µg/dL', 'min_femenino' => '37', 'max_femenino' => '145',
                     ], $pending),
                     $number('transferrina', 'Transferrina', 'mg/dL', '200 a 360 mg/dL', ['min' => '200', 'max' => '360'], $pending),
-                    $number('captacion_hierro', 'Captación y fijación de hierro', 'µg/dL', null, [
-                        'texto_femenino' => 'Mujeres: 135 a 392 µg/dL', 'min_femenino' => '135', 'max_femenino' => '392',
-                    ], $pending),
                 ]],
             ],
         ],
@@ -270,7 +266,7 @@ return [
             'sort_order' => 440,
             'sections' => [
                 ['code' => 'resultado', 'name' => 'Pruebas cuantificadas', 'parameters' => [
-                    $number('vitamina_d', 'Vitamina D total', 'ng/mL', '< 10 ng/mL: Deficiencia. 10 - 30 ng/mL: Insuficiencia. 30 - 100 ng/mL: Suficiencia', [], $pending),
+                    $number('vitamina_d', 'Vitamina D total', 'ng/mL', '< 10 ng/mL: Deficiencia. 10 - 30 ng/mL: Insuficiencia. 30 - 100 ng/mL: Suficiencia'),
                 ]],
             ],
         ],
@@ -292,18 +288,6 @@ return [
             ],
         ],
         [
-            'code' => 'SARAMPION_IGM',
-            'name' => 'Ac. anti-sarampión IgM',
-            'sheet' => 'INFCC',
-            'allows_partial_request' => false,
-            'sort_order' => 460,
-            'sections' => [
-                ['code' => 'resultado', 'name' => 'Infecciosas', 'parameters' => [
-                    $number('sarampion_igm', 'Ac. anti-sarampión IgM', 'UI/mL', $antibodyIndex),
-                ]],
-            ],
-        ],
-        [
             'code' => 'HERPES_SIMPLE',
             'name' => 'Herpes simple',
             'sheet' => 'TORCH1',
@@ -311,7 +295,6 @@ return [
             'sort_order' => 470,
             'sections' => [
                 ['code' => 'herpes_simple', 'name' => 'Herpes simple', 'parameters' => [
-                    $number('herpes_igm_tipo_1', 'Herpes simplex IgM tipo 1', 'UI/mL', $antibodyIndex, [], $pending),
                     $number('herpes_igm_tipo_2', 'Herpes simplex IgM tipo 2', 'UI/mL', $antibodyIndex, [], $pending),
                     $number('herpes_igg_tipo_2', 'Herpes simplex IgG tipo 2', 'UI/mL', $antibodyIndex, [], $pending),
                 ]],
@@ -353,45 +336,8 @@ return [
                     $number('psa_total', 'Antígeno prostático específico total', 'ng/mL', 'Normal o bajo riesgo: 0 a 4 ng/mL. Mediano riesgo: 4 a 10 ng/mL. Alto riesgo: mayor de 10 ng/mL', ['max' => '4']),
                     $number('psa_libre', 'Antígeno prostático fracción libre', 'ng/mL', '0.26 a 4.14 ng/mL', ['min' => '0.26', 'max' => '4.14']),
                     $number('psa_relacion_libre_total', 'Relación L/T', '%', 'Mayor a 25 %: probabilidad de hiperplasia benigna. 11 a 25 %: probabilidad mediana de neoplasia prostática. Menor a 11 %: probabilidad alta de neoplasia prostática'),
-                    $number('ca_125', 'CA 125 (Blastoma mucinoso de ovario)', 'U/mL', 'Hasta 35 U/mL', ['max' => '35'], $pending),
-                    $number('ca_19_9', 'CA 19-9 (Pancreático y gastrointestinal)', 'U/mL', 'Hasta 39 U/mL', ['max' => '39'], $pending),
                     $number('ca_15_3', 'CA 15-3 (Carcinoma mamario)', 'U/mL', 'Hasta 30 U/mL', ['max' => '30'], $pending),
                     $number('cea', 'Antígeno carcinoembrionario (CEA)', 'ng/mL', 'No fumadores: 0 a 5 ng/mL. Fumadores: 0 a 10 ng/mL', [], $pending),
-                ]],
-            ],
-        ],
-        [
-            'code' => 'HORMONAS',
-            'name' => 'Hormonas',
-            'sheet' => 'TIROGLOBULINAS',
-            'allows_partial_request' => true,
-            'sort_order' => 510,
-            'sections' => [
-                ['code' => 'fertilidad', 'name' => 'Hormonas de la fertilidad', 'parameters' => [
-                    $number('prolactina', 'Prolactina (PRL)', 'ng/mL', null, [
-                        'texto_masculino' => 'Hombres: 4.04 a 15.2 ng/mL', 'min_masculino' => '4.04', 'max_masculino' => '15.2',
-                        'texto_femenino' => 'Mujeres no embarazadas: 4.79 a 23.3 ng/mL', 'min_femenino' => '4.79', 'max_femenino' => '23.3',
-                    ]),
-                    $number('testosterona', 'Testosterona (Te)', 'ng/mL', null, [
-                        'texto_masculino' => 'Hombres: 2.8 a 8.0 ng/mL', 'min_masculino' => '2.8', 'max_masculino' => '8.0',
-                        'texto_femenino' => 'Mujeres: 0.06 a 0.82 ng/mL', 'min_femenino' => '0.06', 'max_femenino' => '0.82',
-                    ]),
-                    $number('testosterona_libre', 'Testosterona libre', 'pg/mL', null, [
-                        'texto_masculino' => 'Hombres 18 a 60 años: 15 a 70 pg/mL',
-                    ], $pending),
-                    $number('hidroxiprogesterona_17', '17-alfa-hidroxiprogesterona', 'ng/mL', null, [
-                        'texto_femenino' => 'Mujeres: fase folicular 0.1 a 0.8 ng/mL. Fase lútea 0.6 a 2.3 ng/mL. Ovulación 0.3 a 1.4 ng/mL. Post ACTH menor a 3.2 ng/mL. Menopausia 0.13 a 0.51 ng/mL',
-                        'texto_masculino' => 'Hombres: 0.5 a 2.1 ng/mL', 'min_masculino' => '0.5', 'max_masculino' => '2.1',
-                    ]),
-                ]],
-                ['code' => 'suprarrenales', 'name' => 'Cortisol y ACTH', 'parameters' => [
-                    $number('cortisol_am', 'Cortisol AM', 'µg/dL', '4.82 a 19.5 µg/dL', ['min' => '4.82', 'max' => '19.5'], $pending),
-                    $number('acth', 'Hormona adrenocorticotrópica (ACTH)', 'pg/mL', '7.2 a 63.3 pg/mL', ['min' => '7.2', 'max' => '63.3'], $pending),
-                ]],
-                ['code' => 'insulina', 'name' => 'Insulina', 'parameters' => [
-                    $number('insulina_preprandial', 'Insulina preprandial 0 minutos', 'µUI/mL', '2.6 a 28.4 µUI/mL', ['min' => '2.6', 'max' => '28.4'], $pending),
-                    $number('insulina_postprandial', 'Insulina 120 minutos (postprandial)', 'µUI/mL', '15 a 180 µUI/mL', ['min' => '15', 'max' => '180'], $pending),
-                    $number('indice_homa', 'Índice de resistencia a la insulina', null, '0 a 3: normal. 3 a 4: resistencia leve. 4 a 5: resistencia moderada. Mayor de 5: resistencia grave', ['max' => '3']),
                 ]],
             ],
         ],

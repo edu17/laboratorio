@@ -30,7 +30,7 @@ it('seeds the quantitative panels idempotently with valid structured references'
     expect(Exam::count())->toBe($examCount)
         ->and(ExamParameter::count())->toBe($parameterCount)
         ->and(Exam::where('code', 'QUIMICA')->value('allows_partial_request'))->toBeTrue()
-        ->and(Exam::where('code', 'VITAMINA_D')->sole()->sections()->sole()->parameters()->sole()->clinical_validation_status)->toBe('pending');
+        ->and(Exam::where('code', 'VITAMINA_D')->sole()->sections()->sole()->parameters()->sole()->clinical_validation_status)->toBe('validated');
 
     ExamParameter::all()->each(function (ExamParameter $parameter): void {
         $config = $parameter->reference_config ?? [];

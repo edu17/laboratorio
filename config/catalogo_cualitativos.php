@@ -1,7 +1,7 @@
 <?php
 
 /*
- * Exámenes cualitativos tomados de la zona impresa (columnas A–J) de las hojas vigentes (1–39) de 2025.xlsx.
+ * Exámenes cualitativos tomados de la zona impresa (columnas A–J) de las hojas del libro vigente 2025.xlsx.
  * El laboratorio usa estos formatos actualmente, por eso se cargan como validados.
  */
 

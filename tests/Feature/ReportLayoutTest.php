@@ -83,7 +83,7 @@ it('repeats the patient header on every page and registers the page numbering', 
 
 it('shows qualitative results as cards and validated ranges as bars with their status', function () {
     $qualitative = view('reports.order', ['report' => layoutReport(['DENGUE' => ['dengue_igg' => 'Negativo', 'dengue_igm' => 'Positivo', 'dengue_ns1' => 'Negativo']])])->render();
-    $flagged = view('reports.order', ['report' => layoutReport(['TIROIDEAS' => ['t3' => '1.05', 't4' => '13.4', 'tsh' => '1.98', 'tiroglobulina' => '40']])])->render();
+    $flagged = view('reports.order', ['report' => layoutReport(['TIROIDEAS' => ['t3' => '1.05', 't4' => '13.4', 'tsh' => '1.98']])])->render();
 
     expect($qualitative)
         ->toContain('class="qualitative-cards"', '<td class="positive">', '1 positivo', 'Fin del reporte')
@@ -94,12 +94,11 @@ it('shows qualitative results as cards and validated ranges as bars with their s
 });
 
 it('places the range marker at the result position inside the normal zone', function () {
-    $rows = collect(layoutReport(['TIROIDEAS' => ['t3' => '1.4', 't4' => '13.4', 'tsh' => '< 0.1', 'tiroglobulina' => '40']])['exams'][0]['sections'][0]['rows'])->keyBy('name');
+    $rows = collect(layoutReport(['TIROIDEAS' => ['t3' => '1.4', 't4' => '13.4', 'tsh' => '< 0.1']])['exams'][0]['sections'][0]['rows'])->keyBy('name');
 
     expect($rows['T3']['indicator'])->toBe(['zone_start' => 25.0, 'zone_width' => 50.0, 'position' => 50.0])
         ->and($rows['T4']['indicator']['position'])->toBe(86.7)
-        ->and($rows['TSH']['indicator'])->toBeNull()
-        ->and($rows['Tiroglobulina']['indicator'])->toBeNull();
+        ->and($rows['TSH']['indicator'])->toBeNull();
 });
 
 it('formats eight digit phone numbers in the footer', function () {
