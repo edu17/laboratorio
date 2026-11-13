@@ -131,6 +131,6 @@ it('offers the preview while adding and editing fields and supports an empty ina
         ->fillForm(['exam_section_id' => $section->id])
         ->assertActionVisible('previewExam');
     Livewire::test(EditExamParameter::class, ['record' => $parameter->id])->assertActionVisible('previewExam');
-    Livewire::test(ViewExam::class, ['record' => $exam->id])->assertActionVisible('preview');
+    Livewire::test(ViewExam::class, ['record' => $exam->id])->assertActionVisible('preview')->assertActionDoesNotExist('publishCatalogVersion');
     $this->get(route('exams.preview', $exam))->assertOk()->assertHeader('Content-Type', 'application/pdf');
 });
