@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('exams', function (Blueprint $table): void {
-            $table->boolean('prints_on_separate_page')->default(false)->after('allows_partial_request');
+            $table->boolean('prints_on_separate_page')->default(true)->after('allows_partial_request');
         });
     }
 

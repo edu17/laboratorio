@@ -183,7 +183,7 @@ it('renders the shared header body and footer for other exam types and configura
     $bytes = $pdf->output();
 
     expect($xpath->query('//header[@class="report-header"]//table[@class="details"]')->length)->toBe(1);
-    expect($xpath->query('//main[@class="report-body"]//header[@class="exam-title"]')->length)->toBe(2);
+    expect($xpath->query('//main[@class="report-body"]//header[contains(@class,"exam-title")]')->length)->toBe(2);
     expect($xpath->query('//footer[contains(@class,"report-footer")]')->length)->toBe(1);
     expect($xpath->query('//table[contains(@class,"matrix")]/colgroup/col')->length)->toBe($columnCount);
     expect($report['exams'][0]['sections'][0]['rows'])->toHaveCount(5);

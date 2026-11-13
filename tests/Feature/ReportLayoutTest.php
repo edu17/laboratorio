@@ -109,7 +109,7 @@ it('formats eight digit phone numbers in the footer', function () {
     expect($html)->toContain('Tel. 5628-2580')->not->toContain('56282580');
 });
 
-it('prints the exams marked for a separate page last, each on its own page', function () {
+it('prints every exam on its own page by default and the shared ones together first', function () {
     $values = [
         'DENGUE' => ['dengue_igg' => 'Negativo', 'dengue_igm' => 'Negativo', 'dengue_ns1' => 'Negativo'],
         'FACTOR_REUMATOIDEO' => ['factor_reumatoideo' => '11.26'],
@@ -122,6 +122,9 @@ it('prints the exams marked for a separate page last, each on its own page', fun
         return $pdf->getDomPDF()->getCanvas()->get_page_count();
     };
 
+    expect($pageCount(layoutReport($values)))->toBe(3);
+
+    Exam::query()->update(['prints_on_separate_page' => false]);
     $shared = layoutReport($values);
     Exam::where('code', 'DENGUE')->update(['prints_on_separate_page' => true]);
     $separate = layoutReport($values);

@@ -38,7 +38,7 @@ class ExamForm
                 Toggle::make('prints_on_separate_page')
                     ->label('Se imprime en hoja aparte')
                     ->helperText('Apagado, el resultado comparte hoja con los demás exámenes de la orden.')
-                    ->default(false),
+                    ->default(true),
                 TextInput::make('sort_order')->label('Orden')->numeric()->minValue(0)->default(0)->required(),
             ]);
     }
